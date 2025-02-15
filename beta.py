@@ -3,6 +3,7 @@ import psycopg2
 import pandas as pd
 import os
 from datetime import datetime
+from datetime import datetime, timedelta
 
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
@@ -11,13 +12,15 @@ DB_URL = st.secrets["database"]["url"]
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
 
-# Function to calculate time difference
+from datetime import datetime, timedelta
+
 def calculate_total_time(time_in, time_out):
     if time_in and time_out:
         time_in = datetime.strptime(str(time_in), "%H:%M:%S")
         time_out = datetime.strptime(str(time_out), "%H:%M:%S")
-        total_time = time_out - time_in
-        return total_time
+        total_time_seconds = (time_out - time_in).total_seconds()
+        total_time_hours = round(total_time_seconds / 3600, 2)  # Convert to hours, rounded to 2 decimal places
+        return total_time_hours
     return None
 
 # Function to insert data into the table
@@ -35,16 +38,17 @@ def create_archive_table():
             """)
         conn.commit()
 
-# Function to insert data into the table
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
+    total_time = calculate_total_time(time_in, time_out)  # Calculate total time in hours
+
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out, total_time)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+                (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out, total_time)
             )
         conn.commit()
 
