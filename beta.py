@@ -206,7 +206,18 @@ if entered_password:  # Only check password if the user has typed something
 else:
     st.session_state["authenticated_user"] = None  # Reset authentication if no password entered
 
+if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
+    logged_in_user = st.session_state["authenticated_user"]
 
+    st.subheader(f"📊 Your Work Log, {logged_in_user}")
+    
+    try:
+        with st.spinner("🔄 Loading your data..."):
+            df = pd.read_sql("SELECT * FROM user_data WHERE name = %s", get_connection(), params=(logged_in_user,))
+            st.dataframe(df)
+    except Exception as e:
+        st.error(f"❌ Failed to fetch data: {e}")
+        
 
 # Admin View (Secure with Password)
     st.title("Admin Access")
