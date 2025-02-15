@@ -34,6 +34,8 @@ def get_all_data():
 
 # UI for User Input
 st.title("No Job Cards Work Log")
+st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+   
 
 with st.form("user_input_form"):
     name = st.text_input("Name")
