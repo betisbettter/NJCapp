@@ -5,6 +5,13 @@ import os
 from datetime import datetime
 from datetime import datetime, timedelta
 
+#user passwords
+user_passwords = {
+    "Emily": "Emily",
+    "Anthony": "Anthony",
+    "Greg": "Greg"
+}
+
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
 
@@ -95,10 +102,14 @@ def convert_to_24_hour(hour, minute, am_pm):
         hour = 0
     return f"{hour:02d}:{minute:02d}:00"  # Format as HH:MM:SS
 
+# Sample names for now (you can replace these later)
+all_names = ["Emily", "Anthony", "Greg"]
+
+
 # **Expander for User Input Form**
 with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=True):
     with st.form("user_input_form"):
-        name = st.text_input("Name *", key="name")
+        name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("Date *", key="date")
         sort_or_ship = st.selectbox("Sort or Ship *", ["Sort", "Ship"], key="sort_or_ship")
 
@@ -161,31 +172,50 @@ with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=Tru
             else:
                 try:
                     insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-                    st.success(f"✅ Data submitted successfully! ({time_in} to {time_out})")
+                    st.success(f"✅ Data submitted successfully!")
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
 
 
-
-
-
-
-
-
-
-# Sidebar for Admin Access
+# SIDEBAR
 with st.sidebar:
     if os.path.exists("NJCimage.png"):
         st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
     else:
         st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+
+
+ #User Access   
+    st.title("Track your stats")
+selected_user = st.sidebar.selectbox("Select Your Name", all_names)
+entered_password = st.sidebar.text_input("Enter Password", type="password") 
+
+if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
+    st.sidebar.success(f"✅ Welcome, {selected_user}!")
+    st.session_state["authenticated_user"] = selected_user  # Store authenticated user
+else:
+    st.sidebar.error("❌ Incorrect password.")
+    st.session_state["authenticated_user"] = None
+
+if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
+    logged_in_user = st.session_state["authenticated_user"]
+
+    st.subheader(f"📊 Your Work Log, {logged_in_user}")
     
+    try:
+        with st.spinner("🔄 Loading your data..."):
+            df = pd.read_sql("SELECT * FROM user_data WHERE name = %s", get_connection(), params=(logged_in_user,))
+            st.dataframe(df)
+    except Exception as e:
+        st.error(f"❌ Failed to fetch data: {e}")
+        
+
+# Admin View (Secure with Password)
     st.title("Admin Access")
 
 admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
-# Admin View (Secure with Password)
 if admin_password == "leroy":
     st.sidebar.success("Access granted! Viewing all submissions.")
     st.subheader("📊 All Submitted Data")
