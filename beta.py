@@ -17,7 +17,7 @@ creds = Credentials.from_authorized_user_info(oauth_creds)
 client = gspread.authorize(creds)
 
 # Open Google Sheet
-SHEET_ID = "googleSheet"
+SHEET_ID = "1-naSW8EsTqLd19RoLbl7wNTKrMPJYK4Gd_E0qQUFaG8"
 sheet = client.open_by_key(SHEET_ID).worksheet("Sheet1")
 
 # Read and display data
