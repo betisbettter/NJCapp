@@ -59,24 +59,25 @@ def archive_and_reset():
 st.title("Log your work")
 
 # User Input Form
-with st.form("user_input_form"):
-    name = st.text_input("Name")
-    date = st.date_input("Date")
-    sort_or_ship = st.selectbox("Sort or Ship", ["Sort", "Ship"])
-    num_breaks = st.number_input("Number of Breaks", min_value=0, step=1)
-    whos_break = st.text_input("Who's Break")
-    show_date = st.date_input("Show Date")
-    shows_packed = st.number_input("Shows Packed", min_value=0, step=1)
-    time_in = st.time_input("Time In")
-    time_out = st.time_input("Time Out")
+with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=False):
+    with st.form("user_input_form"):
+        name = st.text_input("Name")
+        date = st.date_input("Date")
+        sort_or_ship = st.selectbox("Sort or Ship", ["Sort", "Ship"])
+        num_breaks = st.number_input("Number of Breaks", min_value=0, step=1)
+        whos_break = st.text_input("Who's Break")
+        show_date = st.date_input("Show Date")
+        shows_packed = st.number_input("Shows Packed", min_value=0, step=1)
+        time_in = st.time_input("Time In")
+        time_out = st.time_input("Time Out")
 
-    submit = st.form_submit_button("Submit")
-    if submit:
-        try:
-            insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-            st.success("✅ Data submitted successfully!")
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
+        submit = st.form_submit_button("Submit")
+        if submit:
+            try:
+                insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+                st.success("✅ Data submitted successfully!")
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
 # Sidebar for Admin Access
 with st.sidebar:
