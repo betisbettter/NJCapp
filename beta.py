@@ -1,81 +1,70 @@
 import streamlit as st
+import psycopg2
 import pandas as pd
-import subprocess
-import sys
-import importlib
-import gspread
-from google.oauth2.credentials import Credentials
+import os
 
-# Load OAuth credentials from Streamlit secrets
-oauth_creds = {
-    "client_id": st.secrets["gcp_oauth"]["client_id"],
-    "client_secret": st.secrets["gcp_oauth"]["client_secret"],
-    "auth_uri": st.secrets["gcp_oauth"]["auth_uri"],
-    "token_uri": st.secrets["gcp_oauth"]["token_uri"],
-    "auth_provider_x509_cert_url": st.secrets["gcp_oauth"]["auth_provider_x509_cert_url"],
-    "refresh_token": st.secrets["gcp_oauth"].get("refresh_token")  # Ensure refresh token is present
-}
+# Load database credentials from Streamlit Secrets
+DB_URL = st.secrets["database"]["url"]
 
-# Authenticate with Google Sheets API
-creds = Credentials(
-    client_id=oauth_creds["client_id"],
-    client_secret=oauth_creds["client_secret"],
-    token_uri=oauth_creds["token_uri"],
-    refresh_token=oauth_creds["refresh_token"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-)
+# Connect to Neon PostgreSQL
+def get_connection():
+    return psycopg2.connect(DB_URL, sslmode="require")
 
-client = gspread.authorize(creds)
+# Create a function to insert data into the table
+def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-# Open Google Sheet
-SHEET_ID = "1-naSW8EsTqLd19RoLbl7wNTKrMPJYK4Gd_E0qQUFaG8"
-sheet = client.open_by_key(SHEET_ID).worksheet("Sheet1")
+# Create a function to retrieve all data
+def get_all_data():
+    conn = get_connection()
+    df = pd.read_sql("SELECT * FROM user_data", conn)
+    conn.close()
+    return df
 
-# Read and display data
-data = sheet.get_all_records()
-
-st.set_page_config(layout="wide")
-
-# Main Section
+# UI for User Input
 st.title("No Job Cards Work Log")
-st.subheader("Welcome to the NJC work log. Fill in the fields below so that you can get paid for the work that you do. Go Team!")
 
-with st.sidebar:
-    try:
-        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
-    except Exception:
-        st.warning("Image not found. Please upload NJCimage.png to the working directory.")
+with st.form("user_input_form"):
+    name = st.text_input("Name")
+    date = st.date_input("Date")
+    sort_or_ship = st.selectbox("Sort or Ship", ["Sort", "Ship"])
+    num_breaks = st.number_input("Number of Breaks", min_value=0, step=1)
+    whos_break = st.text_input("Who's Break")
+    show_date = st.date_input("Show Date")
+    shows_packed = st.number_input("Shows Packed", min_value=0, step=1)
+    time_in = st.time_input("Time In")
+    time_out = st.time_input("Time Out")
 
-    # Initialize admin mode in session state
-    if "admin_mode" not in st.session_state:
-        st.session_state.admin_mode = False
-    if "password_correct" not in st.session_state:
-        st.session_state.password_correct = False
+    submit = st.form_submit_button("Submit")
+    if submit:
+        try:
+            insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+            st.success("✅ Data submitted successfully!")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
 
-    # Admin Button
-    if st.button("Admin"):
-        st.session_state.admin_mode = True
-        st.session_state.password_correct = False  # Reset access when Admin button is pressed
+# Admin View (with Password)
+st.sidebar.header("Admin Access")
+admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
-    # Admin Password Input
-    if st.session_state.admin_mode:
-        password = st.text_input("Enter Admin Password:", type="password")
-
-        if password:
-            if password == "leroy":
-                st.session_state.password_correct = True
-                st.success("Access Granted! Data will be displayed in the main section.")
-            else:
-                st.session_state.password_correct = False
-                st.error("Incorrect Password!")
-
-# Display DataFrame in the main section if access is granted
-if st.session_state.password_correct:
-    st.subheader("Admin Dashboard - Work Log Data")
+if admin_password == "leroy":
+    st.sidebar.success("Access granted! Viewing all submissions.")
+    st.subheader("📊 All Submitted Data")
     
-    # Ensure it's converted to a DataFrame
-    if data:
-        df = pd.DataFrame(data)
+    try:
+        df = get_all_data()
         st.dataframe(df)
-    else:
-        st.info("No data available in the Google Sheet.")
+    except Exception as e:
+        st.error(f"❌ Failed to fetch data: {e}")
+
