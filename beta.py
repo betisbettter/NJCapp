@@ -3,8 +3,6 @@ import psycopg2
 import pandas as pd
 import os
 
-
-#DATABASE
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
 
@@ -12,6 +10,17 @@ DB_URL = st.secrets["database"]["url"]
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
 
+# Function to create archive table if not exists
+def create_archive_table():
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_data_archive AS 
+                SELECT * FROM user_data WHERE 1=0;  -- Copies structure but not data
+            """)
+        conn.commit()
+
+# Function to insert data into the table
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
     with get_connection() as conn:
         with conn.cursor() as cursor:
@@ -24,16 +33,32 @@ def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, sho
             )
         conn.commit()
 
+# Function to retrieve all data
 def get_all_data():
     with get_connection() as conn:
         df = pd.read_sql("SELECT * FROM user_data", conn)
     return df
 
+# Function to archive and reset data
+def archive_and_reset():
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            # Create archive table if not exists
+            create_archive_table()
 
+            # Move all data to the archive table
+            cursor.execute("""
+                INSERT INTO user_data_archive SELECT * FROM user_data;
+            """)
 
-# UI for User Input
+            # Clear the user_data table
+            cursor.execute("DELETE FROM user_data;")
+        conn.commit()
 
+# UI for Title
 st.title("Log your work")
+
+# User Input Form
 with st.form("user_input_form"):
     name = st.text_input("Name")
     date = st.date_input("Date")
@@ -53,22 +78,31 @@ with st.form("user_input_form"):
         except Exception as e:
             st.error(f"❌ Error: {e}")
 
-# Admin View (with Password)
-
+# Sidebar for Admin Access
 with st.sidebar:
+    if os.path.exists("NJCimage.png"):
+        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+    else:
+        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
     
-    st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
-    st.title("Admin Access") 
+    st.title("Admin Access")
 
 admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
+# Admin View (Secure with Password)
 if admin_password == "leroy":
     st.sidebar.success("Access granted! Viewing all submissions.")
     st.subheader("📊 All Submitted Data")
     
     try:
-        df = get_all_data()
-        st.dataframe(df)
+        with st.spinner("🔄 Loading data..."):
+            df = get_all_data()
+            st.dataframe(df)
     except Exception as e:
         st.error(f"❌ Failed to fetch data: {e}")
 
+    # Add Archive & Reset Button
+    if st.button("📦 Archive & Reset Data"):
+        archive_and_reset()
+        st.success("✅ Data has been archived and the table has been reset!")
+        st.experimental_rerun()  # Refresh the page to show empty table

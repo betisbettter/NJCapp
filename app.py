@@ -1,49 +1,77 @@
 import streamlit as st
+import psycopg2
 import pandas as pd
+import os
 
-# Sample DataFrame
-current_dataframe = pd.DataFrame({
-    "Name": ["Alice", "Bob", "Charlie"],
-    "Age": [25, 30, 35],
-    "Role": ["Engineer", "Designer", "Manager"]
-})
 
-st.set_page_config(layout="wide")
+#DATABASE
+# Load database credentials from Streamlit Secrets
+DB_URL = st.secrets["database"]["url"]
 
-# Main Section
-st.title("No Job Cards Work Log")
-st.subheader("Welcome to the NJC work log. Fill in the fields below so that you can get paid for the work that you do. Go Team!")
+# Connect to Neon PostgreSQL
+def get_connection():
+    return psycopg2.connect(DB_URL, sslmode="require")
+
+def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+            )
+        conn.commit()
+
+def get_all_data():
+    with get_connection() as conn:
+        df = pd.read_sql("SELECT * FROM user_data", conn)
+    return df
+
+
+
+# UI for User Input
+
+st.title("Log your work")
+with st.form("user_input_form"):
+    name = st.text_input("Name")
+    date = st.date_input("Date")
+    sort_or_ship = st.selectbox("Sort or Ship", ["Sort", "Ship"])
+    num_breaks = st.number_input("Number of Breaks", min_value=0, step=1)
+    whos_break = st.text_input("Who's Break")
+    show_date = st.date_input("Show Date")
+    shows_packed = st.number_input("Shows Packed", min_value=0, step=1)
+    time_in = st.time_input("Time In")
+    time_out = st.time_input("Time Out")
+
+    submit = st.form_submit_button("Submit")
+    if submit:
+        try:
+            insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+            st.success("✅ Data submitted successfully!")
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+
+# Admin View (with Password)
 
 with st.sidebar:
-    try:
+    if os.path.exists("NJCimage.png"):
         st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
-    except Exception:
-        st.warning("Image not found. Please upload NJCimage.png to the working directory.")
-
+    else:
+        st.warning("⚠️ Image not found. .")
     
-    # Initialize admin mode in session state
-    if "admin_mode" not in st.session_state:
-        st.session_state.admin_mode = False
-    if "password_correct" not in st.session_state:
-        st.session_state.password_correct = False
+    st.title("Admin Access")
 
-    # Admin Button
-    if st.button("Admin"):
-        st.session_state.admin_mode = True
-        st.session_state.password_correct = False  # Reset access when Admin button is pressed
+admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
-    # Admin Password Input
-    if st.session_state.admin_mode:
-        password = st.text_input("Enter Admin Password:", type="password")
-
-        if password:
-            if password == "leroy":
-                st.session_state.password_correct = True
-                st.success("Access Granted! Displaying Data:")
-            else:
-                st.session_state.password_correct = False
-                st.error("Incorrect Password!")
-
-    # Display DataFrame if access granted
-    if st.session_state.password_correct:
-        st.dataframe(current_dataframe)
+if admin_password == "leroy":
+    st.sidebar.success("Access granted! Viewing all submissions.")
+    st.subheader("📊 All Submitted Data")
+    
+    try:
+        with st.spinner("🔄 Loading data..."):
+            df = get_all_data()
+            st.dataframe(df)
+    except Exception as e:
+        st.error(f"❌ Failed to fetch data: {e}")
