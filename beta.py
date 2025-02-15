@@ -121,20 +121,20 @@ with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=Fal
         if sort_or_ship == "Ship":
             shows_packed = st.number_input("Shows Packed *", min_value=0, step=1, key="shows_packed")
 
-            col3, col4 = st.columns(2)
-            with col3:
-                st.write("⏰ Time In *")
-                time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
-                time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
-                time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
-                time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
+        col3, col4 = st.columns(2)
+        with col3:
+            st.write("⏰ Time In *")
+            time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
+            time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
+            time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
+            time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
 
-            with col4:
-                st.write("⏰ Time Out *")
-                time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
-                time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
-                time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
-                time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
+        with col4:
+            st.write("⏰ Time Out *")
+            time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
+            time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
+            time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
+            time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
 
         # Validation Checks
         errors = []
