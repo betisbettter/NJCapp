@@ -186,30 +186,27 @@ with st.sidebar:
         st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 
- #User Access   
+#User Access   
     st.title("Track your stats")
-selected_user = st.sidebar.selectbox("Select Your Name", all_names)
-entered_password = st.sidebar.text_input("Enter Password", type="password") 
 
-if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
-    st.sidebar.success(f"✅ Welcome, {selected_user}!")
-    st.session_state["authenticated_user"] = selected_user  # Store authenticated user
+# Name selection dropdown
+selected_user = st.sidebar.selectbox("Select Your Name", sample_names)
+
+# Password input field
+entered_password = st.sidebar.text_input("Enter Password", type="password")
+
+# Authentication check
+if entered_password:  # Only check password if the user has typed something
+    if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
+        st.sidebar.success(f"✅ Welcome, {selected_user}!")
+        st.session_state["authenticated_user"] = selected_user  # Store authenticated user
+    else:
+        st.sidebar.error("❌ Incorrect password.")
+        st.session_state["authenticated_user"] = None
 else:
-    st.sidebar.error("❌ Incorrect password.")
-    st.session_state["authenticated_user"] = None
+    st.session_state["authenticated_user"] = None  # Reset authentication if no password entered
 
-if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
-    logged_in_user = st.session_state["authenticated_user"]
 
-    st.subheader(f"📊 Your Work Log, {logged_in_user}")
-    
-    try:
-        with st.spinner("🔄 Loading your data..."):
-            df = pd.read_sql("SELECT * FROM user_data WHERE name = %s", get_connection(), params=(logged_in_user,))
-            st.dataframe(df)
-    except Exception as e:
-        st.error(f"❌ Failed to fetch data: {e}")
-        
 
 # Admin View (Secure with Password)
     st.title("Admin Access")
