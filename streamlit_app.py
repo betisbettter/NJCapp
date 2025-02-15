@@ -16,7 +16,7 @@ st.subheader("Welcome to the NJC work log. Fill in the fields below so that you 
 
 with st.sidebar:
     try:
-        st.image("NJCimage.png", caption="Where the champions work", use_column_width=True)
+        st.image("NJCimage.png", caption="Where the champions work", use_container_width =True)
     except Exception:
         st.warning("Image not found. Please upload NJCimage.png to the working directory.")
 
