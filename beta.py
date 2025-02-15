@@ -41,6 +41,16 @@ def create_archive_table():
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
     total_time = calculate_total_time(time_in, time_out)  # Calculate total time in hours
 
+
+def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
+    # Ensure numeric fields default to 0 if missing
+    num_breaks = num_breaks if num_breaks is not None else 0
+    shows_packed = shows_packed if shows_packed is not None else 0
+    time_in = time_in if time_in is not None else "00:00:00"  # Default midnight
+    time_out = time_out if time_out is not None else "00:00:00"  # Default midnight
+    total_time = calculate_total_time(time_in, time_out) if sort_or_ship == "Ship" else 0  # Default 0 if not "Ship"
+
+
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
