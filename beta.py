@@ -96,7 +96,7 @@ def convert_to_24_hour(hour, minute, am_pm):
     return f"{hour:02d}:{minute:02d}:00"  # Format as HH:MM:SS
 
 # **Expander for User Input Form**
-with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=False):
+with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=True):
     with st.form("user_input_form"):
         name = st.text_input("Name *", key="name")
         date = st.date_input("Date *", key="date")
