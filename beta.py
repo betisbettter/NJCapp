@@ -59,7 +59,7 @@ def archive_and_reset():
 st.title("Log your work")
 
 # User Input Form
-with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=False):
+with st.expander("📥  (Click to Expand/Collapse)", expanded=True):
     with st.form("user_input_form"):
         name = st.text_input("Name")
         date = st.date_input("Date")
