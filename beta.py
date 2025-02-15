@@ -2,6 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 import os
+from datetime import datetime
 
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
@@ -9,6 +10,20 @@ DB_URL = st.secrets["database"]["url"]
 # Connect to Neon PostgreSQL
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
+
+# Function to calculate time difference
+def calculate_total_time(time_in, time_out):
+    if time_in and time_out:
+        time_in = datetime.strptime(str(time_in), "%H:%M:%S")
+        time_out = datetime.strptime(str(time_out), "%H:%M:%S")
+        total_time = time_out - time_in
+        return total_time
+    return None
+
+# Function to insert data into the table
+def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
+    total_time = calculate_total_time(time_in, time_out)  # Calculate total time
+
 
 # Function to create archive table if not exists
 def create_archive_table():
