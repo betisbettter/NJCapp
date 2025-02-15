@@ -56,7 +56,8 @@ with st.form("user_input_form"):
 
 # Admin View (with Password)
 st.sidebar.header("Admin Access")
-    st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)  
+st.image("NJCimage.png", caption="Where the champions work", use_container_width=True) 
+ 
 admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
 if admin_password == "leroy":
