@@ -15,7 +15,12 @@ oauth_creds = {
 }
 
 # Authenticate with Google Sheets API
-creds = Credentials.from_authorized_user_info(oauth_creds)
+creds = Credentials(
+    client_id=st.secrets["gcp_oauth"]["client_id"],
+    client_secret=st.secrets["gcp_oauth"]["client_secret"],
+    token_uri=st.secrets["gcp_oauth"]["token_uri"],
+    refresh_token=st.secrets["gcp_oauth"]["refresh_token"]
+)
 client = gspread.authorize(creds)
 
 # Open Google Sheet
