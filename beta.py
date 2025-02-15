@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.credentials import Credentials  # ✅ Fixed Import
+from google.oauth2.credentials import Credentials
 
 # Load OAuth credentials from Streamlit secrets
 oauth_creds = {
@@ -10,17 +10,18 @@ oauth_creds = {
     "auth_uri": st.secrets["gcp_oauth"]["auth_uri"],
     "token_uri": st.secrets["gcp_oauth"]["token_uri"],
     "auth_provider_x509_cert_url": st.secrets["gcp_oauth"]["auth_provider_x509_cert_url"],
-    "refresh_token": st.secrets["gcp_oauth"].get("refresh_token"),  # ✅ Ensure refresh token is present
-    "access_token": st.secrets["gcp_oauth"].get("access_token")
+    "refresh_token": st.secrets["gcp_oauth"].get("refresh_token")  # Ensure refresh token is present
 }
 
 # Authenticate with Google Sheets API
 creds = Credentials(
-    client_id=st.secrets["gcp_oauth"]["client_id"],
-    client_secret=st.secrets["gcp_oauth"]["client_secret"],
-    token_uri=st.secrets["gcp_oauth"]["token_uri"],
-    refresh_token=st.secrets["gcp_oauth"]["refresh_token"]
+    client_id=oauth_creds["client_id"],
+    client_secret=oauth_creds["client_secret"],
+    token_uri=oauth_creds["token_uri"],
+    refresh_token=oauth_creds["refresh_token"],
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 )
+
 client = gspread.authorize(creds)
 
 # Open Google Sheet
@@ -69,7 +70,7 @@ with st.sidebar:
 if st.session_state.password_correct:
     st.subheader("Admin Dashboard - Work Log Data")
     
-    # ✅ Ensure it's converted to a DataFrame
+    # Ensure it's converted to a DataFrame
     if data:
         df = pd.DataFrame(data)
         st.dataframe(df)
