@@ -105,4 +105,4 @@ if admin_password == "leroy":
     if st.button("📦 Archive & Reset Data"):
         archive_and_reset()
         st.success("✅ Data has been archived and the table has been reset!")
-        st.experimental_rerun()  # Refresh the page to show empty table
+        st.rerun()  # Refresh the page to show empty table
