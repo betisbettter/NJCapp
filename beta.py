@@ -57,8 +57,9 @@ with st.form("user_input_form"):
 # Admin View (with Password)
 
 with st.sidebar:
-    st.title("Admin Access")
-    st.image("NJCimage.png", caption="Where the champions work", use_container_width=True) 
+    
+    st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+    st.title("Admin Access") 
 
 admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
 
