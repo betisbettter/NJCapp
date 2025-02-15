@@ -77,8 +77,15 @@ def archive_and_reset():
 # UI for Title
 st.title("Log your work")
 
-# User Input Form
-with st.expander("📥  (Click to Expand/Collapse)", expanded=True):
+def convert_to_24_hour(hour, minute, am_pm):
+    """Convert 12-hour format to 24-hour format"""
+    if am_pm == "PM" and hour != 12:
+        hour += 12
+    elif am_pm == "AM" and hour == 12:
+        hour = 0
+    return f"{hour:02d}:{minute:02d}:00"  # Format as HH:MM:SS
+
+with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=False):
     with st.form("user_input_form"):
         name = st.text_input("Name")
         date = st.date_input("Date")
@@ -87,16 +94,34 @@ with st.expander("📥  (Click to Expand/Collapse)", expanded=True):
         whos_break = st.text_input("Who's Break")
         show_date = st.date_input("Show Date")
         shows_packed = st.number_input("Shows Packed", min_value=0, step=1)
-        time_in = st.time_input("Time In")
-        time_out = st.time_input("Time Out")
+
+        # 12-Hour Format Time Pickers
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.write("⏰ Time In")
+            time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
+            time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
+            time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
+
+        with col2:
+            st.write("⏰ Time Out")
+            time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
+            time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
+            time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
+
+        # Convert to 24-hour format
+        time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
+        time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
 
         submit = st.form_submit_button("Submit")
         if submit:
             try:
                 insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-                st.success("✅ Data submitted successfully!")
+                st.success(f"✅ Data submitted successfully! ({time_in} to {time_out})")
             except Exception as e:
                 st.error(f"❌ Error: {e}")
+
 
 # Sidebar for Admin Access
 with st.sidebar:
