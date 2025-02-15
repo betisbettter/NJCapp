@@ -107,3 +107,20 @@ if admin_password == "leroy":
         archive_and_reset()
         st.success("✅ Data has been archived and the table has been reset!")
         st.rerun()  # Refresh the page to show empty table
+
+    # Function to get archived data
+    def get_archived_data():
+        with get_connection() as conn:
+            df = pd.read_sql("SELECT * FROM user_data_archive", conn)
+        return df
+
+    # Add Button to View Archived Data
+    if st.button("📂 View Archived Data"):
+        try:
+            with st.spinner("🔄 Loading archived data..."):
+                df_archive = get_archived_data()
+                st.subheader("📦 Archived Data")
+                st.dataframe(df_archive)
+        except Exception as e:
+            st.error(f"❌ Failed to fetch archived data: {e}")
+
