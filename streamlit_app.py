@@ -16,11 +16,10 @@ st.subheader("Welcome to the NJC work log. Fill in the fields below so that you 
 
 with st.sidebar:
     try:
-        st.image("NJCimage.png", caption="Where the champions work", use_container_width =True)
+        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
     except Exception:
         st.warning("Image not found. Please upload NJCimage.png to the working directory.")
 
-    
     # Initialize admin mode in session state
     if "admin_mode" not in st.session_state:
         st.session_state.admin_mode = False
@@ -39,11 +38,12 @@ with st.sidebar:
         if password:
             if password == "leroy":
                 st.session_state.password_correct = True
-                st.success("Access Granted! Displaying Data:")
+                st.success("Access Granted! Data will be displayed in the main section.")
             else:
                 st.session_state.password_correct = False
                 st.error("Incorrect Password!")
 
-    # Display DataFrame if access granted
-    if st.session_state.password_correct:
-        st.dataframe(current_dataframe)
+# Display DataFrame in the main section if access is granted
+if st.session_state.password_correct:
+    st.subheader("Admin Dashboard - Work Log Data")
+    st.dataframe(current_dataframe)
