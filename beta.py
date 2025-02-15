@@ -1,7 +1,19 @@
 import streamlit as st
 import pandas as pd
-import gspread
-from google.oauth2.credentials import Credentials
+
+import subprocess
+# Check installed packages
+installed_packages = subprocess.run(["pip", "list"], capture_output=True, text=True)
+st.text(installed_packages.stdout)
+
+# Check installed packages
+installed_packages = subprocess.run(["pip", "list"], capture_output=True, text=True)
+st.text(installed_packages.stdout)
+
+
+
+#import gspread
+#from google.oauth2.credentials import Credentials
 
 # Load OAuth credentials from Streamlit secrets
 oauth_creds = {
