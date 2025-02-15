@@ -190,7 +190,7 @@ with st.sidebar:
     st.title("Track your stats")
 
 # Name selection dropdown
-selected_user = st.sidebar.selectbox("Select Your Name", sample_names)
+selected_user = st.sidebar.selectbox("Select Your Name", all_names)
 
 # Password input field
 entered_password = st.sidebar.text_input("Enter Password", type="password")
