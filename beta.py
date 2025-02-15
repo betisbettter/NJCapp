@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credential    
+from google.oauth2.credentials import Credentials  # ✅ Fixed Import
 
 # Load OAuth credentials from Streamlit secrets
 oauth_creds = {
@@ -9,7 +9,9 @@ oauth_creds = {
     "client_secret": st.secrets["gcp_oauth"]["client_secret"],
     "auth_uri": st.secrets["gcp_oauth"]["auth_uri"],
     "token_uri": st.secrets["gcp_oauth"]["token_uri"],
-    "auth_provider_x509_cert_url": st.secrets["gcp_oauth"]["auth_provider_x509_cert_url"]
+    "auth_provider_x509_cert_url": st.secrets["gcp_oauth"]["auth_provider_x509_cert_url"],
+    "refresh_token": st.secrets["gcp_oauth"].get("refresh_token"),  # ✅ Ensure refresh token is present
+    "access_token": st.secrets["gcp_oauth"].get("access_token")
 }
 
 # Authenticate with Google Sheets API
@@ -22,7 +24,6 @@ sheet = client.open_by_key(SHEET_ID).worksheet("Sheet1")
 
 # Read and display data
 data = sheet.get_all_records()
-
 
 st.set_page_config(layout="wide")
 
@@ -62,4 +63,10 @@ with st.sidebar:
 # Display DataFrame in the main section if access is granted
 if st.session_state.password_correct:
     st.subheader("Admin Dashboard - Work Log Data")
-    st.dataframe(data)
+    
+    # ✅ Ensure it's converted to a DataFrame
+    if data:
+        df = pd.DataFrame(data)
+        st.dataframe(df)
+    else:
+        st.info("No data available in the Google Sheet.")
