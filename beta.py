@@ -3,6 +3,8 @@ import psycopg2
 import pandas as pd
 import os
 
+
+#DATABASE
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
 
@@ -10,27 +12,24 @@ DB_URL = st.secrets["database"]["url"]
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
 
-# Create a function to insert data into the table
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO user_data (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out)
+            )
+        conn.commit()
 
-# Create a function to retrieve all data
 def get_all_data():
-    conn = get_connection()
-    df = pd.read_sql("SELECT * FROM user_data", conn)
-    conn.close()
+    with get_connection() as conn:
+        df = pd.read_sql("SELECT * FROM user_data", conn)
     return df
+
+
 
 # UI for User Input
 
