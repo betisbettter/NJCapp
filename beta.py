@@ -102,7 +102,9 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
             
 
         with col2:
+            st.write("")
             time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
+            st.write("")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
             
 
