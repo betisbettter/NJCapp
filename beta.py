@@ -61,14 +61,21 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
 
 
 
-# Function to create archive table if not exists
-def create_archive_table():
+def archive_and_reset():
     with get_connection() as conn:
         with conn.cursor() as cursor:
+            # Archive `Operations` data
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_data_archive AS 
-                SELECT * FROM user_data WHERE 1=0;  -- Copies structure but not data
+                INSERT INTO Operations_Archive SELECT * FROM Operations;
             """)
+            cursor.execute("DELETE FROM Operations;")  # Clear table after archiving
+
+            # Archive `Payday` data
+            cursor.execute("""
+                INSERT INTO Payday_Archive SELECT * FROM Payday;
+            """)
+            cursor.execute("DELETE FROM Payday;")  # Clear table after archiving
+            
         conn.commit()
 
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
@@ -160,14 +167,14 @@ with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=Tru
 
         col3, col4 = st.columns(2)
         with col3:
-            st.write("⏰ Time In *")
+            st.write("⏰ Time In *, HR:MIN, AM/PM")
             time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
             time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
             time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
             time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
 
         with col4:
-            st.write("⏰ Time Out *")
+            st.write("⏰ Time Out *, HR:MIN, AM/PM")
             time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
             time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
@@ -292,24 +299,24 @@ if admin_password == "leroy":
     except Exception as e:
         st.error(f"❌ Failed to fetch data: {e}")
 
-    # Add Archive & Reset Button
-    if st.button("📦 Archive & Reset Data"):
-        archive_and_reset()
-        st.success("✅ Data has been archived and the table has been reset!")
-        st.rerun()  # Refresh the page to show empty tables
-
-    # Function to get archived data
+    # Function to retrieve archived data
     def get_archived_data():
         with get_connection() as conn:
-            df_archive = pd.read_sql("SELECT * FROM user_data_archive", conn)
-        return df_archive
+            df_operations_archive = pd.read_sql("SELECT * FROM Operations_Archive", conn)
+            df_payday_archive = pd.read_sql("SELECT * FROM Payday_Archive", conn)
+        return df_operations_archive, df_payday_archive
 
     # Add Button to View Archived Data
     if st.button("📂 View Archived Data"):
         try:
             with st.spinner("🔄 Loading archived data..."):
-                df_archive = get_archived_data()
-                st.subheader("📦 Archived Data")
-                st.dataframe(df_archive)
+                df_operations_archive, df_payday_archive = get_archived_data()
+                
+                st.subheader("📦 Archived Operations Table")
+                st.dataframe(df_operations_archive)
+
+                st.subheader("📦 Archived Payday Table")
+                st.dataframe(df_payday_archive)
+
         except Exception as e:
             st.error(f"❌ Failed to fetch archived data: {e}")
