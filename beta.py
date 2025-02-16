@@ -6,9 +6,20 @@ from datetime import datetime, timedelta
 
 # User passwords
 user_passwords = {
-    "Emily": "Emily",
-    "Anthony": "Anthony",
-    "Greg": "Greg"
+    "Emily": "Kali",
+    "Anthony": "TuaTime",
+    "Greg": "GoJets"
+    "Jeff" : "Champion"
+    "Dave" : "BlackBird"
+    "Sean" : "BlueCat"
+    "Cam" : "YellowDog"
+    "Joanna": "PinkPirate"
+    "Brandon": "RedDog"
+    "Jarren" : "BlueJay"
+    "Ingy" : "Siberia"
+    "Claire" : "GoodDay"
+    "Aimee" : "HappyKid"
+    "Manu": "GoDolphins"
 }
 
 # Load database credentials from Streamlit Secrets
@@ -29,15 +40,15 @@ def calculate_total_time(time_in, time_out):
     return None
 
 # Function to insert data into the Operations table
-def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
+def insert_operations_data(name, sort_or_ship, whos_break, show_date):
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, break_numbers)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date)
+                VALUES (%s, %s, %s,%s )
                 """,
-                (name, sort_or_ship, whos_break, show_date, break_numbers)
+                (name, sort_or_ship, whos_break, show_date)
             )
         conn.commit()
 
@@ -68,12 +79,12 @@ def archive_and_reset():
             cursor.execute("DELETE FROM Payday;")
         conn.commit()
 
-# Function to retrieve archived data
 def get_archived_data():
     with get_connection() as conn:
         df_operations_archive = pd.read_sql("SELECT * FROM Operations_Archive", conn)
         df_payday_archive = pd.read_sql("SELECT * FROM Payday_Archive", conn)
     return df_operations_archive, df_payday_archive
+
 
 # Function to convert 12-hour time to 24-hour format
 def convert_to_24_hour(hour, minute, am_pm):
@@ -84,7 +95,7 @@ def convert_to_24_hour(hour, minute, am_pm):
     return f"{hour:02d}:{minute:02d}:00"
 
 # Sample names
-all_names = ["Emily", "Anthony", "Greg"]
+all_names = sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Clair", "Aimee", "Manu"])
 
 # 📌 Expander 1: Base Data
 with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
@@ -161,9 +172,6 @@ with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
         for show in show_data:
             insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"], show["break_numbers"])
         st.success("✅ Show Data submitted successfully!")
-
-
-        
 
 
 
