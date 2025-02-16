@@ -135,7 +135,7 @@ all_names = ["Emily", "Anthony", "Greg"]
 
 
 # 📌 Expander 1: Base Data
-with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
+with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
     with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("Date *", key="date")
@@ -156,7 +156,7 @@ with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
             time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
             time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
 
-        base_submit = st.form_submit_button("Save Base Data")
+        base_submit = st.form_submit_button("Save Pay Data")
         
         if base_submit:
     # Validation Checks
@@ -186,7 +186,7 @@ with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
 
 
 #  Expander 2: Show Data
-with st.expander("🎭 Show Data (Click to Expand/Collapse)", expanded=False):
+with st.expander("Track Shows(Click to Expand/Collapse)", expanded=False):
     num_shows = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
     show_data = []
