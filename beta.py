@@ -176,7 +176,7 @@ with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
                 try:
                     # Insert Base Data into Payday Table
                     total_time = calculate_total_time(time_in, time_out)
-                    insert_payday_data(name, date, time_in, time_out, total_time, num_shows)
+                    insert_payday_data(name, date, time_in, time_out, total_time)
 
                     st.success("✅ Base Data saved successfully! Now enter Show Data.")
                     st.session_state["base_data_submitted"] = True  # ✅ Fix: Assign True
