@@ -139,6 +139,7 @@ with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
     with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("Date *", key="date")
+        num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
 
         col1, col2 = st.columns(2)
         with col1:
