@@ -30,18 +30,19 @@ def calculate_total_time(time_in, time_out):
         return total_time_hours
     return None
 
-def insert_operations_data(name, sort_or_ship, whos_break, show_date):
-    """Inserts data into the Operations table"""
+def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
+    """Inserts data into the Operations table."""
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, break_numbers)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
-                (name, sort_or_ship, whos_break, show_date)
+                (name, sort_or_ship, whos_break, show_date, break_numbers)
             )
         conn.commit()
+
 
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
     """Inserts data into the Payday table"""
@@ -133,81 +134,113 @@ def convert_to_24_hour(hour, minute, am_pm):
 all_names = ["Emily", "Anthony", "Greg"]
 
 
-# **Expander for User Input Form**
-with st.expander("📥 Submit Work Log (Click to Expand/Collapse)", expanded=True):
-    with st.form("user_input_form"):
+# 📌 Expander 1: Base Data
+with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
+    with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("Date *", key="date")
-        sort_or_ship = st.selectbox("Sort or Ship *", ["Sort", "Ship"], key="sort_or_ship")
 
-        # Conditional fields
         col1, col2 = st.columns(2)
-
         with col1:
-            whos_break = st.text_input("Who's Break *", key="whos_break")
-        with col2:
-            show_date = st.date_input("Show Date *", key="show_date")
-
-        num_breaks = None
-        shows_packed = None
-        time_in = None
-        time_out = None
-
-        if sort_or_ship == "Sort":
-            num_breaks = st.number_input("Number of Breaks *", min_value=0, step=1, key="num_breaks")
-        
-        if sort_or_ship == "Ship":
-            shows_packed = st.number_input("Shows Packed *", min_value=0, step=1, key="shows_packed")
-
-        col3, col4 = st.columns(2)
-        with col3:
             st.write("⏰ Time In *, HR:MIN, AM/PM")
             time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
             time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
             time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
             time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
 
-        with col4:
+        with col2:
             st.write("⏰ Time Out *, HR:MIN, AM/PM")
             time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
             time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
             time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
 
-        # Validation Checks
-        errors = []
-        if not name:
-            errors.append("⚠️ Name is required.")
-        if not date:
-            errors.append("⚠️ Date is required.")
-        if not sort_or_ship:
-            errors.append("⚠️ Sort or Ship selection is required.")
-        if not whos_break:
-            errors.append("⚠️ Who's Break is required.")
-        if not show_date:
-            errors.append("⚠️ Show Date is required.")
-        if sort_or_ship == "Sort" and num_breaks is None:
-            errors.append("⚠️ Number of Breaks is required for Sort.")
-        if sort_or_ship == "Ship" and (shows_packed is None or time_in is None or time_out is None):
-            errors.append("⚠️ Shows Packed and Time In/Out are required for Ship.")
+        base_submit = st.form_submit_button("Save Base Data")
+        
+        if base_submit:
+    # Validation Checks
+            base_errors = []
+            if not name:
+                base_errors.append("⚠️ Name is required.")
+            if not date:
+                base_errors.append("⚠️ Date is required.")
+            if not time_in:
+                base_errors.append("⚠️ Time In is required.")
+            if not time_out:
+                base_errors.append("⚠️ Time Out is required.")
 
-        submit = st.form_submit_button("Submit")
-        if submit:
-            if errors:
-                for error in errors:
+            if base_errors:
+                for error in base_errors:
                     st.error(error)
             else:
                 try:
-                    # Insert data into Operations Table
-                    insert_operations_data(name, sort_or_ship, whos_break, show_date)
-
-                    # Insert data into Payday Table
+                    # Insert Base Data into Payday Table
                     total_time = calculate_total_time(time_in, time_out)
-                    insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
+                    insert_payday_data(name, date, time_in, time_out, total_time, num_shows)
 
-                    st.success(f"✅ Data submitted successfully!")
+                    st.success("✅ Base Data saved successfully! Now enter Show Data.")
+                    st.session_state["base_data_submitted"] = True  # ✅ Fix: Assign True
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
+
+
+#  Expander 2: Show Data
+with st.expander("🎭 Show Data (Click to Expand/Collapse)", expanded=False):
+    num_shows = st.number_input("Number of Shows *", min_value=1, step=1, key="num_shows")
+
+    show_data = []
+    for i in range(num_shows):
+        st.markdown(f"### 📅 Show {i+1}")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            sort_or_ship = st.selectbox(f"Sort or Ship for Show {i+1} *", ["Sort", "Ship"], key=f"sort_or_ship_{i}")
+            whos_show = st.text_input(f"Who's Show for Show {i+1} *", key=f"whos_show_{i}")
+
+        with col2:
+            show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
+            break_numbers = st.number_input(f"Break Number(s) for Show {i+1}", min_value=0, step=1, key=f"break_numbers_{i}")
+
+        show_data.append({
+            "sort_or_ship": sort_or_ship,
+            "whos_show": whos_show,
+            "show_date": show_date,
+            "break_numbers": break_numbers
+        })
+
+    show_submit = st.button("Submit Show Data")
+        if "base_data_submitted" not in st.session_state or not st.session_state["base_data_submitted"]:
+            st.error("⚠️ Please submit Base Data first before adding Show Data.")
+        else:
+            show_errors = []
+            if num_shows < 1:
+                show_errors.append("⚠️ At least 1 show must be selected.")
+
+            for i, show in enumerate(show_data):
+                if not show["sort_or_ship"]:
+                    show_errors.append(f"⚠️ Sort or Ship selection is required for Show {i+1}.")
+                if not show["whos_show"]:
+                    show_errors.append(f"⚠️ Who’s Show is required for Show {i+1}.")
+                if not show["show_date"]:
+                    show_errors.append(f"⚠️ Show Date is required for Show {i+1}.")
+                if show["break_numbers"] is None:
+                    show_errors.append(f"⚠️ Break Number(s) are required for Show {i+1}.")
+
+            if show_errors:
+                for error in show_errors:
+                    st.error(error)
+            else:
+                try:
+                    # Insert each show entry into Operations Table
+                    for show in show_data:
+                        insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"], show["break_numbers"])
+
+                    st.success("✅ Show Data submitted successfully!")
+                    st.session_state["show_data_submitted"] = True  # Track successful submission
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+
+        
 
 
 
