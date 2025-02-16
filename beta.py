@@ -93,21 +93,26 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
         date = st.date_input("Date *", key="date")
         num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.write("⏰ Time In *, HR:MIN, AM/PM")
+            st.write("⏰ TIME IN")
             time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
-            time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
-            time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
-            time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
+            st.write("⏰ TIME OUT")
+            time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
+            
 
         with col2:
-            st.write("⏰ Time Out *, HR:MIN, AM/PM")
-            time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
+            time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
-            time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
-            time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
+            
 
+        with col3: 
+            st.write("AM/PM")
+            time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
+            time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
+
+            time_out = convert_to_24_hour(time_out_hour, time_out_minute, time_out_am_pm)
+            time_in = convert_to_24_hour(time_in_hour, time_in_minute, time_in_am_pm)
         base_submit = st.form_submit_button("Save Pay Data")
 
         if base_submit:
@@ -146,7 +151,6 @@ with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
             whos_show = st.text_input(f"Who's Show for Show {i+1} *", key=f"whos_show_{i}")
         with col2:
             show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
-            break_numbers = st.number_input_input(f"Break Number(s) for Show {i+1}", min_value=0, step=1, key=f"break_numbers_")
 
         show_data.append({"sort_or_ship": sort_or_ship, "whos_show": whos_show, "show_date": show_date, "break_numbers": break_numbers})
 
