@@ -209,36 +209,37 @@ with st.expander("🎭 Show Data (Click to Expand/Collapse)", expanded=False):
         })
 
     show_submit = st.button("Submit Show Data")
-        if "base_data_submitted" not in st.session_state or not st.session_state["base_data_submitted"]:
-            st.error("⚠️ Please submit Base Data first before adding Show Data.")
+if show_submit:
+    if "base_data_submitted" not in st.session_state or not st.session_state["base_data_submitted"]:
+        st.error("⚠️ Please submit Base Data first before adding Show Data.")
+    else:
+        show_errors = []
+        if num_shows < 1:
+            show_errors.append("⚠️ At least 1 show must be selected.")
+
+        for i, show in enumerate(show_data):
+            if not show["sort_or_ship"]:
+                show_errors.append(f"⚠️ Sort or Ship selection is required for Show {i+1}.")
+            if not show["whos_show"]:
+                show_errors.append(f"⚠️ Who’s Show is required for Show {i+1}.")
+            if not show["show_date"]:
+                show_errors.append(f"⚠️ Show Date is required for Show {i+1}.")
+            if show["break_numbers"] is None:
+                show_errors.append(f"⚠️ Break Number(s) are required for Show {i+1}.")
+
+        if show_errors:
+            for error in show_errors:
+                st.error(error)
         else:
-            show_errors = []
-            if num_shows < 1:
-                show_errors.append("⚠️ At least 1 show must be selected.")
+            try:
+                # Insert each show entry into Operations Table
+                for show in show_data:
+                    insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"], show["break_numbers"])
 
-            for i, show in enumerate(show_data):
-                if not show["sort_or_ship"]:
-                    show_errors.append(f"⚠️ Sort or Ship selection is required for Show {i+1}.")
-                if not show["whos_show"]:
-                    show_errors.append(f"⚠️ Who’s Show is required for Show {i+1}.")
-                if not show["show_date"]:
-                    show_errors.append(f"⚠️ Show Date is required for Show {i+1}.")
-                if show["break_numbers"] is None:
-                    show_errors.append(f"⚠️ Break Number(s) are required for Show {i+1}.")
-
-            if show_errors:
-                for error in show_errors:
-                    st.error(error)
-            else:
-                try:
-                    # Insert each show entry into Operations Table
-                    for show in show_data:
-                        insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"], show["break_numbers"])
-
-                    st.success("✅ Show Data submitted successfully!")
-                    st.session_state["show_data_submitted"] = True  # Track successful submission
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
+                st.success("✅ Show Data submitted successfully!")
+                st.session_state["show_data_submitted"] = True  # Track successful submission
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
         
 
