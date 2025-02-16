@@ -93,23 +93,23 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
         date = st.date_input("Date *", key="date")
         num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.write("⏰ TIME IN")
-            time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
             st.write("⏰ TIME OUT")
+        
+        with col1:
+            
+            time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
             time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
             
 
         with col2:
-            st.write("")
             time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
-            st.write("")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
             
 
         with col3: 
-            st.write("AM/PM")
             time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
             time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
 
