@@ -117,21 +117,6 @@ def get_all_data():
         df = pd.read_sql("SELECT * FROM user_data", conn)
     return df
 
-# Function to archive and reset data
-def archive_and_reset():
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            # Create archive table if not exists
-            create_archive_table()
-
-            # Move all data to the archive table
-            cursor.execute("""
-                INSERT INTO user_data_archive SELECT * FROM user_data;
-            """)
-
-            # Clear the user_data table
-            cursor.execute("DELETE FROM user_data;")
-        conn.commit()
 
 # UI for Title
 st.title("Log your work")
