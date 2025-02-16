@@ -98,18 +98,18 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
             st.write("⏰ TIME IN")
             st.write("⏰ TIME OUT")
         
-        with col1:
+        with col2:
             
             time_in_hour = st.selectbox("Hour", list(range(1, 13)), key="time_in_hour")
             time_out_hour = st.selectbox("Hour", list(range(1, 13)), key="time_out_hour")
             
 
-        with col2:
+        with col3:
             time_in_minute = st.selectbox("Minute", list(range(0, 60)), key="time_in_minute")
             time_out_minute = st.selectbox("Minute", list(range(0, 60)), key="time_out_minute")
             
 
-        with col3: 
+        with col4: 
             time_in_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_in_am_pm")
             time_out_am_pm = st.selectbox("AM/PM", ["AM", "PM"], key="time_out_am_pm")
 
