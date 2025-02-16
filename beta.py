@@ -152,7 +152,7 @@ with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
         with col2:
             show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
 
-        show_data.append({"sort_or_ship": sort_or_ship, "whos_show": whos_show, "show_date": show_date, "break_numbers": break_numbers})
+        show_data.append({"sort_or_ship": sort_or_ship, "whos_show": whos_show, "show_date": show_date})
 
     show_submit = st.button("Submit Show Data")
     if show_submit:
