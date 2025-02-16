@@ -56,27 +56,35 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
             )
         conn.commit()
 
-
-
-
-
-
 def archive_and_reset():
     with get_connection() as conn:
         with conn.cursor() as cursor:
-            # Archive `Operations` data
+            # Ensure archive tables exist
             cursor.execute("""
-                INSERT INTO Operations_Archive SELECT * FROM Operations;
+                CREATE TABLE IF NOT EXISTS Operations_Archive AS 
+                SELECT * FROM Operations WHERE 1=0;
             """)
-            cursor.execute("DELETE FROM Operations;")  # Clear table after archiving
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS Payday_Archive AS 
+                SELECT * FROM Payday WHERE 1=0;
+            """)
 
-            # Archive `Payday` data
-            cursor.execute("""
-                INSERT INTO Payday_Archive SELECT * FROM Payday;
-            """)
-            cursor.execute("DELETE FROM Payday;")  # Clear table after archiving
+            # Archive Operations data
+            cursor.execute("INSERT INTO Operations_Archive SELECT * FROM Operations;")
+            cursor.execute("DELETE FROM Operations;")  # Clear Operations table
+
+            # Archive Payday data
+            cursor.execute("INSERT INTO Payday_Archive SELECT * FROM Payday;")
+            cursor.execute("DELETE FROM Payday;")  # Clear Payday table
             
         conn.commit()
+
+# Function to retrieve archived data
+def get_archived_data():
+    with get_connection() as conn:
+        df_operations_archive = pd.read_sql("SELECT * FROM Operations_Archive", conn)
+        df_payday_archive = pd.read_sql("SELECT * FROM Payday_Archive", conn)
+    return df_operations_archive, df_payday_archive
 
 def insert_data(name, date, sort_or_ship, num_breaks, whos_break, show_date, shows_packed, time_in, time_out):
     total_time = calculate_total_time(time_in, time_out)  # Calculate total time in hours
@@ -299,13 +307,13 @@ if admin_password == "leroy":
     except Exception as e:
         st.error(f"❌ Failed to fetch data: {e}")
 
-    # Function to retrieve archived data
-    def get_archived_data():
-        with get_connection() as conn:
-            df_operations_archive = pd.read_sql("SELECT * FROM Operations_Archive", conn)
-            df_payday_archive = pd.read_sql("SELECT * FROM Payday_Archive", conn)
-        return df_operations_archive, df_payday_archive
 
+        # Add Archive & Reset Button
+    if st.button("📦 Archive & Reset Data"):
+        archive_and_reset()
+        st.success("✅ Data has been archived and the tables have been reset!")
+        st.rerun()  # Refresh the page to show empty tables
+    
     # Add Button to View Archived Data
     if st.button("📂 View Archived Data"):
         try:
