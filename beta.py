@@ -69,15 +69,16 @@ def archive_and_reset():
                 SELECT * FROM Payday WHERE 1=0;
             """)
 
-            # Archive Operations data
+            # Move existing data to archive tables
             cursor.execute("INSERT INTO Operations_Archive SELECT * FROM Operations;")
-            cursor.execute("DELETE FROM Operations;")  # Clear Operations table
-
-            # Archive Payday data
             cursor.execute("INSERT INTO Payday_Archive SELECT * FROM Payday;")
-            cursor.execute("DELETE FROM Payday;")  # Clear Payday table
+
+            # Clear the original tables
+            cursor.execute("DELETE FROM Operations;")
+            cursor.execute("DELETE FROM Payday;")
             
         conn.commit()
+
 
 # Function to retrieve archived data
 def get_archived_data():
@@ -308,12 +309,12 @@ if admin_password == "leroy":
         st.error(f"❌ Failed to fetch data: {e}")
 
 
-        # Add Archive & Reset Button
+    # Add Archive & Reset Button
     if st.button("📦 Archive & Reset Data"):
         archive_and_reset()
         st.success("✅ Data has been archived and the tables have been reset!")
         st.rerun()  # Refresh the page to show empty tables
-    
+        
     # Add Button to View Archived Data
     if st.button("📂 View Archived Data"):
         try:
