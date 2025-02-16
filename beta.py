@@ -146,7 +146,7 @@ with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
             whos_show = st.text_input(f"Who's Show for Show {i+1} *", key=f"whos_show_{i}")
         with col2:
             show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
-            break_numbers = st.text_input(f"Break Number(s) for Show {i+1}", min_value=0, step=1, key=f"break_numbers_")
+            break_numbers = st.number_input_input(f"Break Number(s) for Show {i+1}", min_value=0, step=1, key=f"break_numbers_")
 
         show_data.append({"sort_or_ship": sort_or_ship, "whos_show": whos_show, "show_date": show_date, "break_numbers": break_numbers})
 
