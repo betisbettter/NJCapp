@@ -186,11 +186,11 @@ with st.expander("📥 Base Data (Click to Expand/Collapse)", expanded=True):
 
 #  Expander 2: Show Data
 with st.expander("🎭 Show Data (Click to Expand/Collapse)", expanded=False):
-    num_shows = st.number_input("Number of Shows *", min_value=1, step=1, key="num_shows")
+    num_shows = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
     show_data = []
     for i in range(num_shows):
-        st.markdown(f"### 📅 Show {i+1}")
+        st.markdown(f"### Entry {i+1}")
 
         col1, col2 = st.columns(2)
         with col1:
@@ -199,7 +199,7 @@ with st.expander("🎭 Show Data (Click to Expand/Collapse)", expanded=False):
 
         with col2:
             show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
-            break_numbers = st.number_input(f"Break Number(s) for Show {i+1}", min_value=0, step=1, key=f"break_numbers_{i}")
+            break_numbers = st.text_input(f"Break Number(s) for Show {i+1}")
 
         show_data.append({
             "sort_or_ship": sort_or_ship,
