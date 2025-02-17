@@ -100,6 +100,10 @@ all_names = ["Select your name"] + sorted(["Emily", "Anthony", "Greg", "Jeff", "
 
 # 📌 Expander 1: Base Data
 with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>💰 Get Paid</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
     
 
     with st.form("base_data_form"):
