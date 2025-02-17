@@ -99,7 +99,7 @@ def convert_to_24_hour(hour, minute, am_pm):
 all_names = ["Select your name"] + sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"])
 
 # 📌 Expander 1: Base Data
-with st.expander("<h3 style= font-size: 24px;> Get Paid </h3> (Click to Expand/Collapse)", expanded=True):
+with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
     
 
     with st.form("base_data_form"):
@@ -109,7 +109,7 @@ with st.expander("<h3 style= font-size: 24px;> Get Paid </h3> (Click to Expand/C
 
         # time inputs with dropdowns for hours, minutes, and AM/PM
         # More efficient time logging using `st.time_input()`
-        st.subheader("⏰ Work Hours")
+        st.caption("⏰ Work Hours")
 
         time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
         time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
