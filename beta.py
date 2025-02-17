@@ -106,25 +106,23 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
         num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
 
         # time inputs with dropdowns for hours, minutes, and AM/PM
+        # More efficient time logging using `st.time_input()`
         st.subheader("⏰ Work Hours")
-        col_time_1, col_time_2 = st.columns(2)
 
-        with col_time_1:
-            time_in_hour = st.selectbox("Hour In", list(range(1, 13)), key="time_in_hour")
-            time_out_hour = st.selectbox("Hour Out", list(range(1, 13)), key="time_out_hour")
+        time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
+        time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
 
-        with col_time_2:
-            time_in_minute = st.selectbox("Minute In", list(range(0, 60)), key="time_in_minute")
-            time_out_minute = st.selectbox("Minute Out", list(range(0, 60)), key="time_out_minute")
+        # Submit Button
+        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
 
-        # AM/PM Selection
-        col_time_am_pm_1, col_time_am_pm_2 = st.columns(2)
-
-        with col_time_am_pm_1:
-            time_in_am_pm = st.selectbox("AM/PM In", ["AM", "PM"], key="time_in_am_pm")
-
-        with col_time_am_pm_2:
-            time_out_am_pm = st.selectbox("AM/PM Out", ["AM", "PM"], key="time_out_am_pm")
+    if submit_button:
+        if name == "Select your name":
+            st.error("❌ You must select a valid name.")
+        else:
+            # Convert time to strings for storage
+            time_in_str = time_in.strftime("%H:%M:%S")
+            time_out_str = time_out.strftime("%H:%M:%S")
+            st.success(f"✅ Data saved! Time In: {time_in_str}, Time Out: {time_out_str}")
 
         base_submit = st.form_submit_button("Save Pay Data")
 
