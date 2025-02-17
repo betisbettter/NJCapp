@@ -100,14 +100,13 @@ all_names = ["Select your name"] + sorted([
 
 
 # === APP MAIN SECTION  ===
-right, center, left = st.columns(3)
-with center:
 
-    # Display Image (if available)
-    if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", width=150)  # Adjust width as needed
-    else:
-        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+
+# Display Image (if available)
+if os.path.exists("NJCimage2.png"):
+    st.image("NJCimage2.png", use_container_width==True)  # Adjust width as needed
+else:
+    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 # Display Title
 st.markdown("<h1 style='text-align: center;'>Team App</h1>", unsafe_allow_html=True)
@@ -220,7 +219,7 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
 # === 📌 Admin View (Secure with Password) ===
 with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>🎬 Admin View</h2>
+        <h2 style='text-align: center; font-size: 24px;'>Admin View</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
     admin_password = st.text_input("Enter Admin Password", type="password")
