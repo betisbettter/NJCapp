@@ -153,9 +153,9 @@ with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
 
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
         st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h2>
-        <hr style='border: 1px solid gray;'>
-    """, unsafe_allow_html=True)
+            <h2 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h2>
+            <hr style='border: 1px solid gray;'>
+        """, unsafe_allow_html=True)
 
     num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
