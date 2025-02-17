@@ -102,12 +102,6 @@ all_names = ["Select your name"] + sorted(["Emily", "Anthony", "Greg", "Jeff", "
 with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
     with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
-        # Prevent form submission if placeholder is selected
-        if name == "Select your name":
-            st.warning("⚠️ Please select a valid name.")
-        else:
-            st.success(f"✅ You selected: {name}")
-
         date = st.date_input("Date *", key="date")
         num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
 
