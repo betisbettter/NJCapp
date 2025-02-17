@@ -87,7 +87,36 @@ def get_archived_data():
         df_payday_archive = pd.read_sql_query("SELECT * FROM Payday_Archive", conn)
     return df_operations_archive, df_payday_archive
 
+#APP MAIN
+st.title(The NJC app)
+if os.path.exists("NJCimage.png"):
+        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+    else:
+        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+
+
+# Function to convert 12-hour time to 24-hour format
+def convert_to_24_hour(hour, minute, am_pm):
+    if am_pm == "PM" and hour != 12:
+        hour += 12
+    elif am_pm == "AM" and hour == 12:
+        hour = 0
+    return f"{hour:02d}:{minute:02d}:00"
+
+
+# Users
+all_names = ["Select your name"] + sorted([
+    "Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", 
+    "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"
+])
+
+# 📌 Expander 1: Get Paid 
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>💰 Get Paid</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
+
     with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("📅 Date *", key="date")
@@ -107,54 +136,12 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
         else:
             total_time = calculate_total_time(time_in, time_out)
             insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
-            st.success(f"Saved!")
+            st.success(f"✅ Data saved!")
 
-            
-# Function to convert 12-hour time to 24-hour format
-def convert_to_24_hour(hour, minute, am_pm):
-    if am_pm == "PM" and hour != 12:
-        hour += 12
-    elif am_pm == "AM" and hour == 12:
-        hour = 0
-    return f"{hour:02d}:{minute:02d}:00"
 
-# Sample names
-all_names = ["Select your name"] + sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"])
-
-# 📌 Expander 1: Base Data
-with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
-    st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>💰 Get Paid</h2>
-        <hr style='border: 1px solid gray;'>
-    """, unsafe_allow_html=True)
-    
-
-    with st.form("base_data_form"):
-        name = st.selectbox("Name *", all_names, key="name")
-        date = st.date_input("Date *", key="date")
-        num_breaks = st.number_input("Number of Breaks (if you get paid by break)", min_value=0, step=1, key="num_breaks")
-
-        # time inputs with dropdowns for hours, minutes, and AM/PM
-        # More efficient time logging using `st.time_input()`
-        st.write("⏰ Work Hours:")
-
-        time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
-        time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
-
-        # Submit Button
-        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
-
-    if submit_button:
-        if name == "Select your name":
-            st.error("❌ You must select a valid name.")
-        else:
-            # Convert time to strings for storage
-            time_in_str = time_in.strftime("%H:%M:%S")
-            time_out_str = time_out.strftime("%H:%M:%S")
-            st.success(f"✅ Data saved! Time In: {time_in_str}, Time Out: {time_out_str}")
-
+     
         
-
+#📌 Expander 2: track shows
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h2>
@@ -184,15 +171,9 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
 
 
 
-# SIDEBAR
-with st.sidebar:
-    if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
-    else:
-        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
-
-
-#User Access   
+#📌 Expander3: View Data
+with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
+     
     st.title("Track your stats")
 
 # Name selection dropdown
@@ -241,8 +222,6 @@ if "authenticated_user" in st.session_state and st.session_state["authenticated_
     except Exception as e:
         st.error(f"❌ Failed to fetch data: {e}")
 
-
-        
 
 # Admin View (Secure with Password)
     st.title("Admin Access")
