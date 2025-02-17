@@ -104,7 +104,7 @@ all_names = ["Select your name"] + sorted([
 
 # Display Image (if available)
 if os.path.exists("NJCimage2.png"):
-    st.image("NJCimage2.png", use_container_width==True)  # Adjust width as needed
+    st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
 else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
