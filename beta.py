@@ -8,19 +8,20 @@ from datetime import datetime, timedelta
 user_passwords = {
     "Emily": "Kali",
     "Anthony": "TuaTime",
-    "Greg": "GoJets"
-    "Jeff" : "Champion"
-    "Dave" : "BlackBird"
-    "Sean" : "BlueCat"
-    "Cam" : "YellowDog"
-    "Joanna": "PinkPirate"
-    "Brandon": "RedDog"
-    "Jarren" : "BlueJay"
-    "Ingy" : "Siberia"
-    "Claire" : "GoodDay"
-    "Aimee" : "HappyKid"
+    "Greg": "GoJets",
+    "Jeff": "Champion",
+    "Dave": "BlackBird",
+    "Sean": "BlueCat",
+    "Cam": "YellowDog",
+    "Joanna": "PinkPirate",
+    "Brandon": "RedDog",
+    "Jarren": "BlueJay",
+    "Ingy": "Siberia",
+    "Claire": "GoodDay",
+    "Aimee": "HappyKid",
     "Manu": "GoDolphins"
 }
+
 
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
@@ -95,7 +96,7 @@ def convert_to_24_hour(hour, minute, am_pm):
     return f"{hour:02d}:{minute:02d}:00"
 
 # Sample names
-all_names = sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Clair", "Aimee", "Manu"])
+all_names = sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"])
 
 # 📌 Expander 1: Base Data
 with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
@@ -194,15 +195,17 @@ selected_user = st.sidebar.selectbox("Select Your Name", all_names)
 entered_password = st.sidebar.text_input("Enter Password", type="password")
 
 # Authentication check
-if entered_password:  # Only check password if the user has typed something
+if entered_password:
     if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
         st.sidebar.success(f"✅ Welcome, {selected_user}!")
-        st.session_state["authenticated_user"] = selected_user  # Store authenticated user
+        st.session_state["authenticated_user"] = selected_user
     else:
         st.sidebar.error("❌ Incorrect password.")
-        st.session_state["authenticated_user"] = None
-else:
-    st.session_state["authenticated_user"] = None  # Reset authentication if no password entered
+        st.session_state.pop("authenticated_user", None)  # Safely remove
+
+# Keep previous session if no new password entered
+if "authenticated_user" not in st.session_state:
+    st.session_state["authenticated_user"] = None
 
 if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
     logged_in_user = st.session_state["authenticated_user"]
