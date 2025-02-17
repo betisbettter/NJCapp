@@ -104,11 +104,51 @@ all_names = ["Select your name"] + sorted([
 
 
 #APP MAIN
-st.title("The NoJobCards Team App")
-if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", caption="Where the champions work", width=250)
-else:
+
+
+import streamlit as st
+import os
+
+# Create two columns (Title on the left, Image on the right)
+col1, col2 = st.columns([2, 1])  # Make the left column wider
+
+with col1:
+    st.title("NoJobCards Team App")  # Title in the first column
+
+with col2:
+    if os.path.exists("NJCimage.png"):
+        st.image("NJCimage.png", caption="Where the champions work", width=200)  # Adjust width as needed
+    else:
         st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+
+# 📌 Expander: Get Paid Section (Placed Below the Two Columns)
+with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>💰 Get Paid</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
+
+    with st.form("base_data_form"):
+        name = st.selectbox("Name *", all_names, key="name")
+        date = st.date_input("📅 Date *", key="date")
+        num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
+
+        # More efficient time logging using `st.time_input()`
+        st.write("⏰ Work Hours:")
+        time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
+        time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
+
+        # Submit Button
+        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
+
+    if submit_button:
+        if name == "Select your name":
+            st.error("❌ You must select a valid name.")
+        else:
+            total_time = calculate_total_time(time_in, time_out)
+            insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
+            st.success(f"✅ Data saved!")
+
 
 # 📌 Expander 1: Get Paid 
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
