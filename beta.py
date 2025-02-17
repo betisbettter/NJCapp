@@ -104,9 +104,9 @@ all_names = ["Select your name"] + sorted([
 
 
 #APP MAIN
-st.title("Welcome to NoJobCards Team App")
+st.title("The NoJobCards Team App")
 if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+        st.image("NJCimage.png", caption="Where the champions work", width=250)
 else:
         st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
