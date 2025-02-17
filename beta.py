@@ -87,14 +87,6 @@ def get_archived_data():
         df_payday_archive = pd.read_sql_query("SELECT * FROM Payday_Archive", conn)
     return df_operations_archive, df_payday_archive
 
-#APP MAIN
-st.title(The NJC app)
-if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
-    else:
-        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
-
-
 # Function to convert 12-hour time to 24-hour format
 def convert_to_24_hour(hour, minute, am_pm):
     if am_pm == "PM" and hour != 12:
@@ -109,6 +101,14 @@ all_names = ["Select your name"] + sorted([
     "Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", 
     "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"
 ])
+
+
+#APP MAIN
+st.title("Welcome to NoJobCards Team App")
+if os.path.exists("NJCimage.png"):
+        st.image("NJCimage.png", caption="Where the champions work", use_container_width=True)
+else:
+        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 # 📌 Expander 1: Get Paid 
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
