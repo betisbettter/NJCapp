@@ -97,23 +97,27 @@ all_names = ["Select your name"] + sorted([
     "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"
 ])
 
-# === APP MAIN SECTION ===
 
-st.markdown(
-    """
-    <div style="text-align: center;">
-        {image}
-        <h1>Team App</h1>
-    </div>
-    """.format(
-        image=f'<img src="NJCimage.png" width="150">' if os.path.exists("NJCimage.png") else ""
-    ),
-    unsafe_allow_html=True
-)
+
+# === APP MAIN SECTION  ===
+st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+
+# Display Image (if available)
+if os.path.exists("NJCimage.png"):
+    st.image("NJCimage.png", width=150)  # Adjust width as needed
+else:
+    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+
+# Display Title
+st.markdown("<h1 style='text-align: center;'>Team App</h1>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)  # Close the center-aligned div
+
 
 # Show warning if the image is missing
 if not os.path.exists("NJCimage.png"):
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+    
 
 # === 📌 Expander 1: Get Paid Section ===
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
