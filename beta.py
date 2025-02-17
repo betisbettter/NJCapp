@@ -4,6 +4,9 @@ import pandas as pd
 import os
 from datetime import datetime, time
 
+
+# === 📌 Database Connection & Utility Functions ===
+
 # User passwords
 user_passwords = {
     "Emily": "Kali",
@@ -25,7 +28,7 @@ user_passwords = {
 # Load database credentials from Streamlit Secrets
 DB_URL = st.secrets["database"]["url"]
 
-# Connect to PostgreSQL Database
+# Function to connect to the PostgreSQL database
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
 
@@ -39,6 +42,54 @@ def calculate_total_time(time_in, time_out):
         total_time_hours = round(total_time_seconds / 3600, 2)
         return total_time_hours
     return None
+
+# Function to insert data into the Operations table
+def insert_operations_data(name, sort_or_ship, whos_break, show_date):
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (name, sort_or_ship, whos_break, show_date)
+            )
+        conn.commit()
+
+# Function to insert data into the Payday table
+def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (name, date, time_in, time_out, total_time, num_breaks)
+            )
+        conn.commit()
+
+# Function to archive and reset data
+def archive_and_reset():
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("CREATE TABLE IF NOT EXISTS Operations_Archive AS SELECT * FROM Operations WHERE 1=0;")
+            cursor.execute("CREATE TABLE IF NOT EXISTS Payday_Archive AS SELECT * FROM Payday WHERE 1=0;")
+
+            cursor.execute("INSERT INTO Operations_Archive SELECT * FROM Operations;")
+            cursor.execute("INSERT INTO Payday_Archive SELECT * FROM Payday;")
+
+            cursor.execute("DELETE FROM Operations;")
+            cursor.execute("DELETE FROM Payday;")
+        conn.commit()
+
+# Function to retrieve archived data
+def get_archived_data():
+    with get_connection() as conn:
+        df_operations_archive = pd.read_sql_query("SELECT * FROM Operations_Archive", conn)
+        df_payday_archive = pd.read_sql_query("SELECT * FROM Payday_Archive", conn)
+    return df_operations_archive, df_payday_archive
+
 
 # Users List
 all_names = ["Select your name"] + sorted([
