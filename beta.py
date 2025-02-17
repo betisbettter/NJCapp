@@ -33,8 +33,9 @@ def get_connection():
 # Function to calculate total time in hours
 def calculate_total_time(time_in, time_out):
     if time_in and time_out:
-        time_in = datetime.strptime(str(time_in), "%H:%M:%S")
-        time_out = datetime.strptime(str(time_out), "%H:%M:%S")
+        time_in = datetime.combine(datetime.today(), time_in)  # Convert time to full datetime
+        time_out = datetime.combine(datetime.today(), time_out)
+
         total_time_seconds = (time_out - time_in).total_seconds()
         total_time_hours = round(total_time_seconds / 3600, 2)  # Convert to hours
         return total_time_hours
@@ -82,11 +83,33 @@ def archive_and_reset():
 
 def get_archived_data():
     with get_connection() as conn:
-        df_operations_archive = pd.read_sql("SELECT * FROM Operations_Archive", conn)
-        df_payday_archive = pd.read_sql("SELECT * FROM Payday_Archive", conn)
+        df_operations_archive = pd.read_sql_query("SELECT * FROM Operations_Archive", conn)
+        df_payday_archive = pd.read_sql_query("SELECT * FROM Payday_Archive", conn)
     return df_operations_archive, df_payday_archive
 
+with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=True):
+    with st.form("base_data_form"):
+        name = st.selectbox("Name *", all_names, key="name")
+        date = st.date_input("📅 Date *", key="date")
+        num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
+        # More efficient time logging using `st.time_input()`
+        st.write("⏰ Work Hours:")
+        time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
+        time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
+
+        # Submit Button
+        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
+
+    if submit_button:
+        if name == "Select your name":
+            st.error("❌ You must select a valid name.")
+        else:
+            total_time = calculate_total_time(time_in, time_out)
+            insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
+            st.success(f"Saved!")
+
+            
 # Function to convert 12-hour time to 24-hour format
 def convert_to_24_hour(hour, minute, am_pm):
     if am_pm == "PM" and hour != 12:
@@ -130,30 +153,7 @@ with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
             time_out_str = time_out.strftime("%H:%M:%S")
             st.success(f"✅ Data saved! Time In: {time_in_str}, Time Out: {time_out_str}")
 
-        base_submit = st.form_submit_button("Save Pay Data")
-
-        if base_submit:
-            base_errors = []
-            if not name:
-                base_errors.append("⚠️ Name is required.")
-            if not date:
-                base_errors.append("⚠️ Date is required.")
-            if not time_in:
-                base_errors.append("⚠️ Time In is required.")
-            if not time_out:
-                base_errors.append("⚠️ Time Out is required.")
-
-            if base_errors:
-                for error in base_errors:
-                    st.error(error)
-            else:
-                try:
-                    total_time = calculate_total_time(time_in, time_out)
-                    insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
-                    st.success("✅ Base Data saved successfully! Now enter Show Data.")
-                    st.session_state["base_data_submitted"] = True
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
+        
 
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
