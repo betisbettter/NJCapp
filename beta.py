@@ -174,7 +174,10 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
 
 # === 📌 Expander 3: View Data ===
 with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
-    st.title("Track your stats")
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>Your Work</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
 
     
     selected_user = st.sidebar.selectbox("Select Your Name", all_names)
@@ -216,11 +219,14 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
 
 # === 📌 Admin View (Secure with Password) ===
 with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
-    st.title("Admin Access")
-    admin_password = st.sidebar.text_input("Enter Admin Password", type="password")
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>🎬 Admin View</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
+    admin_password = st.text_input("Enter Admin Password", type="password")
 
     if admin_password == "leroy":
-        st.sidebar.success("Access granted! Viewing all submissions.")
+        st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
 
         try:
