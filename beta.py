@@ -117,7 +117,7 @@ with col1:
 
 with col2:
     if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", caption="Where the champions work", width=200)  # Adjust width as needed
+        st.image("NJCimage.png", caption="Where the champions work", width=100)  # Adjust width as needed
     else:
         st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
