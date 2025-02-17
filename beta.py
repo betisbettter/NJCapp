@@ -171,15 +171,15 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
     """, unsafe_allow_html=True)
 
     
-    selected_user = st.sidebar.selectbox("Select Your Name", all_names)
-    entered_password = st.sidebar.text_input("Enter Password", type="password")
+    selected_user = st.selectbox("Select Your Name", all_names)
+    entered_password = st.text_input("Enter Password", type="password")
 
     if entered_password:
         if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
-            st.sidebar.success(f"✅ Welcome, {selected_user}!")
+            st.success(f"✅ Welcome, {selected_user}!")
             st.session_state["authenticated_user"] = selected_user
         else:
-            st.sidebar.error("❌ Incorrect password.")
+            st.error("❌ Incorrect password.")
             st.session_state.pop("authenticated_user", None)
 
     if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
