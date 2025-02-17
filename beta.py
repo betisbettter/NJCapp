@@ -149,7 +149,6 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
-# ✅ Fixed break_numbers input type
 with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
     num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
@@ -168,7 +167,7 @@ with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
     show_submit = st.button("Submit Show Data")
     if show_submit:
         for show in show_data:
-            insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"], show["break_numbers"])
+            insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"])
         st.success("✅ Show Data submitted successfully!")
 
 
