@@ -99,7 +99,9 @@ def convert_to_24_hour(hour, minute, am_pm):
 all_names = ["Select your name"] + sorted(["Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam", "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"])
 
 # 📌 Expander 1: Base Data
-with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
+with st.expander("**<span style='font-size:24px;'> Get Paid (Click to Expand/Collapse)</span>**", expanded=True):
+    st.markdown("<h3 style='text-align: center; font-size: 24px;'> Get Paid</h3>", unsafe_allow_html=True)
+
     with st.form("base_data_form"):
         name = st.selectbox("Name *", all_names, key="name")
         date = st.date_input("Date *", key="date")
@@ -149,7 +151,9 @@ with st.expander("📥 Get Paid (Click to Expand/Collapse)", expanded=True):
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
-with st.expander("Track Shows (Click to Expand/Collapse)", expanded=False):
+with st.expander("**<span style='font-size:24px;'>🎬 Track Shows (Click to Expand/Collapse)</span>**", expanded=False):
+    st.markdown("<h3 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h3>", unsafe_allow_html=True)
+
     num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
     show_data = []
