@@ -108,14 +108,6 @@ if os.path.exists("NJCimage2.png"):
 else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
-# Display Title
-st.markdown("<h1 style='text-align: center;'>Team App</h1>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)  # Close the center-aligned div
-
-
-# Show warning if the image is missing
-if not os.path.exists("NJCimage.png"):
-    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 
 # === 📌 Expander 1: Get Paid Section ===
