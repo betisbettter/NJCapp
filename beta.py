@@ -99,17 +99,21 @@ all_names = ["Select your name"] + sorted([
 
 # === APP MAIN SECTION ===
 
-# Two columns: Title & Image
-col1, col2 = st.columns([2, 1])  # Left side wider than right
+st.markdown(
+    """
+    <div style="text-align: center;">
+        {image}
+        <h1>Team App</h1>
+    </div>
+    """.format(
+        image=f'<img src="NJCimage.png" width="150">' if os.path.exists("NJCimage.png") else ""
+    ),
+    unsafe_allow_html=True
+)
 
-with col1:
-    st.title("Team App")  # App Title
-
-with col2:
-    if os.path.exists("NJCimage.png"):
-        st.image("NJCimage.png", width=150)  # Adjust width as needed
-    else:
-        st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+# Show warning if the image is missing
+if not os.path.exists("NJCimage.png"):
+    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 # === 📌 Expander 1: Get Paid Section ===
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
