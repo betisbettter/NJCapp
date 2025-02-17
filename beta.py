@@ -113,7 +113,7 @@ with st.expander("Get Paid (Click to Expand/Collapse)", expanded=True):
 
         # time inputs with dropdowns for hours, minutes, and AM/PM
         # More efficient time logging using `st.time_input()`
-        st.caption("⏰ Work Hours")
+        st.write("⏰ Work Hours:")
 
         time_in = st.time_input("🔵 Time In", value=time(9, 0))  # Default 9:00 AM
         time_out = st.time_input("🔴 Time Out", value=time(17, 0))  # Default 5:00 PM
