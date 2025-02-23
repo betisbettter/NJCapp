@@ -171,7 +171,7 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     if show_submit:
     
         if name == "Select your name" or not name:  # ✅ Ensure Name is selected
-            st.error("❌ You must select your name in the Pay sections before submitting this form.")
+            st.error("❌ You must select your name in the Get Paid section before submitting this form.")
         else:
             for show in show_data:
                 insert_operations_data(
