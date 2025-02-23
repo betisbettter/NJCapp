@@ -44,17 +44,18 @@ def calculate_total_time(time_in, time_out):
     return None
 
 # Function to insert data into the Operations table
-def insert_operations_data(name, sort_or_ship, whos_break, show_date):
+def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, Break_Numbers)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
-                (name, sort_or_ship, whos_break, show_date)
+                (name, sort_or_ship, whos_break, show_date, break_numbers)  # ✅ Insert Break_Numbers
             )
         conn.commit()
+
 
 # Function to insert data into the Payday table
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
@@ -149,18 +150,33 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     for i in range(num_entries):
         st.markdown(f"### Entry {i+1}")
         col1, col2 = st.columns(2)
-        with col1:
-            sort_or_ship = st.selectbox(f"Sort or Ship for Show {i+1} *", ["Sort", "Ship"], key=f"sort_or_ship_{i}")
-            whos_show = st.text_input(f"Who's Show for Show {i+1} *", key=f"whos_show_{i}")
-        with col2:
-            show_date = st.date_input(f"Show Date for Show {i+1} *", key=f"show_date_{i}")
 
-        show_data.append({"sort_or_ship": sort_or_ship, "whos_show": whos_show, "show_date": show_date})
+        with col1:
+            sort_or_ship = st.selectbox(f"Sort or Ship", ["Sort", "Ship"], key=f"sort_or_ship_{i}")
+            whos_show = st.text_input(f"Who's Show", key=f"whos_show_{i}")
+
+        with col2:
+            show_date = st.date_input(f"Show Date", key=f"show_date_{i}")
+            break_numbers = st.text_input(f"Break Numbers Worked On", key=f"break_numbers_{i}")
+
+        show_data.append({
+            "sort_or_ship": sort_or_ship,
+            "whos_show": whos_show,
+            "show_date": show_date,
+            "break_numbers": break_numbers  # ✅ New field added
+        })
 
     show_submit = st.button("Submit Show Data")
+
     if show_submit:
         for show in show_data:
-            insert_operations_data(name, show["sort_or_ship"], show["whos_show"], show["show_date"])
+            insert_operations_data(
+                name, 
+                show["sort_or_ship"], 
+                show["whos_show"], 
+                show["show_date"], 
+                show["break_numbers"]  # ✅ Pass new value to database function
+            )
         st.success("✅ Show Data submitted successfully!")
 
 # === 📌 Expander 3: View Data ===
