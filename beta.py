@@ -174,16 +174,16 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
             st.error("❌ You must select your name in the Pay sections before submitting this form.")
         else:
             for show in show_data:
-            insert_operations_data(
-                name, 
-                show["sort_or_ship"], 
-                show["whos_show"], 
-                show["show_date"], 
-                show["break_numbers"]  # ✅ Pass new value to database function
-            )
-        st.success("✅ Show Data submitted successfully!")
+                insert_operations_data(
+                    name, 
+                    show["sort_or_ship"], 
+                    show["whos_show"], 
+                    show["show_date"], 
+                    show["break_numbers"]  # ✅ Pass new value to database function
+                )
+            st.success("✅ Show Data submitted successfully!")
 
-# === 📌 Expander 3: View Data ===
+    # === 📌 Expander 3: View Data ===
 with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Your Work</h2>
