@@ -113,7 +113,7 @@ pay_rates = {
     "Brandon": {"type": "hourly", "rate": 20.00},
     "Claire": {"type": "hourly", "rate": 22.00},
     "Aimee": {"type": "hourly", "rate": 22.00},
-    "Kylie": {"type": "hourly", "rate": 21.00}
+    "Kylie": {"type": "hourly", "rate": 21.00},
     "Kaley": {"type": "hourly", "rate": 20.00},
 
 }
