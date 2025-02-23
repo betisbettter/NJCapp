@@ -57,18 +57,21 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
         conn.commit()
 
 
-# Function to insert data into the Payday table
+# Function to insert data into the Payday table with Total Pay
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
+    total_pay = calculate_total_pay(name, total_time, num_breaks)  # ✅ New Pay Calculation
+
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks, total_pay)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
-                (name, date, time_in, time_out, total_time, num_breaks)
+                (name, date, time_in, time_out, total_time, num_breaks, total_pay)  # ✅ Insert Total Pay
             )
         conn.commit()
+
 
 # Function to archive and reset data
 def archive_and_reset():
@@ -94,9 +97,42 @@ def get_archived_data():
 
 # Users List
 all_names = ["Select your name"] + sorted([
-    "Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cam",
-    "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu"
+    "Emily", "Anthony", "Greg", "Jeff", "Dave", "Sean", "Cameron",
+    "Joanna", "Brandon", "Jarren", "Ingy", "Claire", "Aimee", "Manu", "Kylie", "Kaley"
 ])
+
+pay_rates = {
+    "Emily": {"type": "break", "rate": 15.00},  
+    "Anthony": {"type": "break", "rate": 15.00},  
+    "Greg": {"type": "hourly", "rate": 18.50},
+    "Jeff": {"type": "hourly", "rate": 25.00},
+    "Dave": {"type": "hourly", "rate": 25.00},
+    "Sean": {"type": "hourly", "rate": 22.00},
+    "Cameron": {"type": "hourly", "rate": 20.00},
+    "Joanna": {"type": "break", "rate": 15.00},
+    "Brandon": {"type": "hourly", "rate": 20.00},
+    "Claire": {"type": "hourly", "rate": 22.00},
+    "Aimee": {"type": "hourly", "rate": 22.00},
+    "Kylie": {"type": "hourly", "rate": 21.00}
+    "Kaley": {"type": "hourly", "rate": 20.00},
+
+}
+
+def calculate_total_pay(name, total_time, num_breaks):
+    """Calculates the total pay based on hourly or break pay structure."""
+    if name not in pay_rates:
+        return 0  # Default to 0 if no pay rate is set
+
+    pay_type = pay_rates[name]["type"]
+    rate = pay_rates[name]["rate"]
+
+    if pay_type == "hourly":
+        return round(total_time * rate, 2)  # Multiply hours worked by hourly rate
+    elif pay_type == "break":
+        return round(num_breaks * rate, 2)  # Multiply breaks by break rate
+    else:
+        return 0  # Default case (should never happen)
+
 
 
 
