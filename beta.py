@@ -169,7 +169,11 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     show_submit = st.button("Submit Show Data")
 
     if show_submit:
-        for show in show_data:
+    
+        if name == "Select your name" or not name:  # ✅ Ensure Name is selected
+            st.error("❌ You must select your name in the Pay sections before submitting this form.")
+        else:
+            for show in show_data:
             insert_operations_data(
                 name, 
                 show["sort_or_ship"], 
