@@ -240,6 +240,24 @@ def calculate_total_pay(name, total_time, num_breaks):
     else:
         return 0  # Default case (should never happen)
 
+import pandas as pd
+
+def generate_weekly_payroll_report(week_start):
+    """
+    Generates a weekly payroll report for all users, combining punch clock data and manual time tracking.
+    """
+    with get_connection() as conn:
+        # Fetch hours from the PunchClockData table
+        punch_clock_df = pd.read_sql_query(
+            "SELECT name, total_hours FROM PunchClockData WHERE week_start = %s",
+            conn,
+            params=(week_start,)
+        )
+
+        # Fetch manually entered time tracking data from the Payday table
+        payday_df = pd.read_sql_query(
+            """
+            SELECT name, SU
 
 
 
@@ -382,14 +400,6 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
     if admin_password == "leroy":
         st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
-
-# === 📂 Expander: Weekly Payroll Report ===
-with st.expander("📊 Weekly Payroll Report (Click to Expand/Collapse)", expanded=False):
-    st.markdown("""
-        <h2 style='text-align: center;'>📊 Weekly Payroll Report</h2>
-        <hr style='border: 1px solid gray;'>
-    """, unsafe_allow_html=True)
-
 
 #generate payroll report
     # Fetch available weeks from database
