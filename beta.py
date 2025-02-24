@@ -34,17 +34,6 @@ DB_URL = st.secrets["database"]["url"]
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
 
-# Function to calculate total work hours
-def calculate_total_time(time_in, time_out):
-    if time_in and time_out:
-        time_in = datetime.combine(datetime.today(), time_in)
-        time_out = datetime.combine(datetime.today(), time_out)
-
-        total_time_seconds = (time_out - time_in).total_seconds()
-        total_time_hours = round(total_time_seconds / 3600, 2)
-        return total_time_hours
-    return None
-
 def extract_date_from_filename(filename):
     """Extracts YYYYMMDD date from filename and converts it to a date object."""
     match = re.search(r"(\d{8})", filename)  # Looks for an 8-digit number in filename
@@ -99,16 +88,14 @@ def get_punch_clock_hours(name, week_start):
             return df.iloc[0]["total_hours"]  # Return first match
         return None  # If no data found, return None
     
-
 def get_available_weeks():
     """Fetch distinct week start dates from the PunchClockData table."""
     with get_connection() as conn:
         df = pd.read_sql_query("SELECT DISTINCT week_start FROM PunchClockData ORDER BY week_start DESC", conn)
     return df["week_start"].tolist() if not df.empty else []
-
     
-def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
-    """Insert Payday data while prioritizing Punch Clock hours if available."""
+def insert_payday_data(name, date, time_in, time_out, num_breaks):
+    """Insert Payday data using ONLY punch clock hours. If no data is found, set hours to 0."""
     
     # Calculate week start date (Monday of that week)
     week_start = date - timedelta(days=date.weekday())  
@@ -116,10 +103,10 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
     # Fetch official hours from PunchClockData
     official_hours = get_punch_clock_hours(name, week_start)
 
-    # Use punch clock hours if available, otherwise use manually entered time
-    total_time = official_hours if official_hours is not None else total_time
+    # 🛑 If no punch clock data is found, set total hours to 0
+    total_time = official_hours if official_hours is not None else 0  
 
-    # Calculate total pay
+    # Calculate total pay based on official punch clock time
     total_pay = calculate_total_pay(name, total_time, num_breaks)
 
     with get_connection() as conn:
@@ -132,6 +119,8 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
                 (name, date, time_in, time_out, total_time, num_breaks, total_pay)  
             )
         conn.commit()
+
+
 
 
 def calculate_total_pay(name, total_time, num_breaks):
