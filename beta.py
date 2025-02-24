@@ -263,6 +263,23 @@ def generate_weekly_payroll_report(week_start):
     # Select relevant columns
     payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
 
+    # Insert the payroll data into the PayrollSummary table
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            for _, row in payroll_df.iterrows():
+                cursor.execute(
+                    """
+                    INSERT INTO PayrollSummary (week_start, name, total_hours, total_breaks, total_pay)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (week_start, name) DO UPDATE
+                    SET total_hours = EXCLUDED.total_hours,
+                        total_breaks = EXCLUDED.total_breaks,
+                        total_pay = EXCLUDED.total_pay;
+                    """,
+                    (week_start, row["name"], row["total_hours"], row["total_breaks"], row["total_pay"])
+                )
+        conn.commit()
+
     return payroll_df
 
 
@@ -387,7 +404,7 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
                 st.subheader("📋 Operations Log")
                 st.dataframe(df_operations)
 
-            with st.spinner("🔄 Loading your Payday log..."):
+            with st.spinner("🔄 Loading your Payroll report..."):
                 df_payday = pd.read_sql_query(
                     "SELECT * FROM Payday WHERE name = %s",
                     get_connection(),
