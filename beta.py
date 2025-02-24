@@ -3,6 +3,8 @@ import psycopg2
 import pandas as pd
 import os
 from datetime import datetime, time
+import re
+
 
 
 # === 📌 Database Connection & Utility Functions ===
@@ -43,6 +45,33 @@ def calculate_total_time(time_in, time_out):
         return total_time_hours
     return None
 
+def extract_date_from_filename(filename):
+    """Extracts YYYYMMDD date from filename and converts it to a date object."""
+    match = re.search(r"(\d{8})", filename)  # Looks for an 8-digit number in filename
+    if match:
+        return datetime.strptime(match.group(1), "%Y%m%d").date()  # Convert to date
+    return None  # Return None if no date found 
+
+def extract_punch_clock_data(file_path, filename):
+    """
+    Extracts the employee name, total hours worked, and week start date from the punch clock CSV.
+    """
+    df = pd.read_csv(file_path, header=None, encoding="latin1")
+    raw_name = df.iloc[2, 3] if pd.notna(df.iloc[2, 3]) else None
+  # name = re.sub(r"\s*\(\d+\)", "", raw_name).strip() if raw_name else None
+  # first name extract
+    name = re.sub(r"\s*\(\d+\)", "", raw_name).strip().split()[0] if raw_name else None 
+
+    # Extract total hours from row 11, column 5
+    total_hours = df.iloc[11, 5] if pd.notna(df.iloc[11, 5]) else None
+
+    # Extract week start date from filename
+    week_start_date = extract_date_from_filename(filename)
+
+    return {"name": name, "total_hours": total_hours, "week_start_date": week_start_date}
+
+
+
 # Function to insert data into the Operations table
 def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
     with get_connection() as conn:
@@ -59,7 +88,7 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
 
 # Function to insert data into the Payday table with Total Pay
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
-    total_pay = calculate_total_pay(name, total_time, num_breaks)  # ✅ New Pay Calculation
+    total_time = get_punch_clock_hours(name, date)
 
     with get_connection() as conn:
         with conn.cursor() as cursor:
@@ -304,3 +333,31 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
                 st.dataframe(df_payday_archive)
             except Exception as e:
                 st.error(f"❌ Failed to fetch archived data: {e}")
+
+
+# === 📂 Expander: Upload Multiple Punch Clock CSVs ===
+with st.expander("📂 Upload Weekly Punch Clock Data"):
+    st.markdown("<h2 style='text-align: center;'>📂 Upload Weekly Punch Clock Reports</h2>", unsafe_allow_html=True)
+
+    uploaded_files = st.file_uploader("Upload Punch Clock CSVs", type=["csv"], accept_multiple_files=True)
+
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            # Extract Data from Each CSV
+            punch_clock_data = extract_punch_clock_data(uploaded_file, uploaded_file.name)
+
+            # Display Extracted Data for Admin Review
+            st.write(f"🧑 Employee: {punch_clock_data['name']}")
+            st.write(f"⏳ Total Hours Worked: {punch_clock_data['total_hours']}")
+            st.write(f"📆 Week Start Date: {punch_clock_data['week_start_date']}")  # ✅ Auto-detected!
+
+            # Save to Database
+            if punch_clock_data["week_start_date"]:
+                insert_punch_clock_data(
+                    punch_clock_data["name"], 
+                    punch_clock_data["total_hours"], 
+                    punch_clock_data["week_start_date"]
+                )
+
+        st.success("✅ All Punch Clock Data Successfully Saved to Database!")
+
