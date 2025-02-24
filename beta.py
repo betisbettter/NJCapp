@@ -94,7 +94,7 @@ def get_available_weeks():
         df = pd.read_sql_query("SELECT DISTINCT week_start FROM PunchClockData ORDER BY week_start DESC", conn)
     return df["week_start"].tolist() if not df.empty else []
     
-def insert_payday_data(name, date, time_in, time_out, num_breaks):
+def insert_payday_data(name, date, num_breaks):
     """Insert Payday data using ONLY punch clock hours. If no data is found, set hours to 0."""
     
     # Calculate week start date (Monday of that week)
@@ -113,12 +113,13 @@ def insert_payday_data(name, date, time_in, time_out, num_breaks):
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks, total_pay)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO Payday (name, date, total_time, num_breaks, total_pay)
+                VALUES (%s, %s, %s, %s, %s)
                 """,
-                (name, date, time_in, time_out, total_time, num_breaks, total_pay)  
+                (name, date, total_time, num_breaks, total_pay)  
             )
         conn.commit()
+
 
 def calculate_total_pay(name, total_time, num_breaks):
     """Calculates the total pay based on hourly or break pay structure."""
@@ -224,24 +225,26 @@ def calculate_total_pay(name, total_time, num_breaks):
     else:
         return 0  # Default case (should never happen)
 
-
-
 def generate_weekly_payroll_report(week_start):
     """
-    Generates a payroll report by combining punch clock data and manual time tracking.
+    Generates a payroll report using ONLY punch clock data.
+    Includes break numbers if submitted. If a user has no data, their hours and pay are set to 0.
     """
     with get_connection() as conn:
-        # Fetch hours from PunchClockData table
+        # Fetch all employee names
+        employee_df = pd.read_sql_query("SELECT DISTINCT name FROM PunchClockData", conn)
+
+        # Fetch punch clock data for the selected week
         punch_clock_df = pd.read_sql_query(
             "SELECT name, total_hours FROM PunchClockData WHERE week_start = %s",
             conn,
             params=(week_start,)
         )
 
-        # Fetch manually entered time tracking data
-        payday_df = pd.read_sql_query(
+        # Fetch submitted breaks data from Payday table for the selected week
+        breaks_df = pd.read_sql_query(
             """
-            SELECT name, SUM(total_time) AS total_time, SUM(num_breaks) AS total_breaks 
+            SELECT name, SUM(num_breaks) AS total_breaks 
             FROM Payday 
             WHERE date BETWEEN %s AND %s 
             GROUP BY name
@@ -250,11 +253,29 @@ def generate_weekly_payroll_report(week_start):
             params=(week_start, week_start + timedelta(days=6))
         )
 
-    # Merge data sources
-    payroll_df = pd.merge(payday_df, punch_clock_df, on="name", how="outer")
+    # Merge punch clock and break data to ensure all employees are listed
+    payroll_df = pd.merge(employee_df, punch_clock_df, on="name", how="left")
+    payroll_df = pd.merge(payroll_df, breaks_df, on="name", how="left")
 
-    # If no punch clock data, use manually entered hours
-    payroll_df["total_hours"] = payroll_df["total_hours"].fillna(payroll_df["total_time"])
+    # Set missing hours and breaks to 0 if no data exists
+    payroll_df["total_hours"] = payroll_df["total_hours"].fillna(0)
+    payroll_df["total_breaks"] = payroll_df["total_breaks"].fillna(0)
+
+    # Compute total pay based on hours and breaks
+    payroll_df["total_pay"] = payroll_df.apply(
+        lambda row: calculate_total_pay(row["name"], row["total_hours"], row["total_breaks"]),
+        axis=1
+    )
+
+    # Select relevant columns
+    payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
+
+    return payroll_df
+
+    # Merge punch clock and breaks data
+    payroll_df = pd.merge(punch_clock_df, payday_df, on="name", how="left")
+
+    # Fill missing break numbers with 0
     payroll_df["total_breaks"] = payroll_df["total_breaks"].fillna(0)
 
     # Compute pay for each worker
@@ -292,10 +313,6 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         date = st.date_input("📅 Date *", key="date")
         num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
-        st.write("⏰ Work Hours:")
-        time_in = st.time_input("🔵 Time In", value=time(9, 0))
-        time_out = st.time_input("🔴 Time Out", value=time(17, 0))
-
         submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
 
     if submit_button:
@@ -303,7 +320,8 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             st.error("❌ You must select a valid name.")
         else:
             total_time = calculate_total_time(time_in, time_out)
-            insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
+            insert_payday_data(name, date, num_breaks)
+
             st.success("✅ Data saved!")
 
 # === 📌 Expander 2: Track Shows ===
