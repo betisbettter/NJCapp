@@ -70,6 +70,24 @@ def extract_punch_clock_data(file_path, filename):
 
     return {"name": name, "total_hours": total_hours, "week_start_date": week_start_date}
 
+def insert_punch_clock_data(name, total_hours, week_start):
+    """
+    Inserts or updates punch clock data into the PunchClockData table.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO PunchClockData (name, week_start, total_hours)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (name, week_start) DO UPDATE
+                SET total_hours = EXCLUDED.total_hours;
+                """,
+                (name, week_start, total_hours)
+            )
+        conn.commit()
+
+
 
 
 # Function to insert data into the Operations table
