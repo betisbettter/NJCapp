@@ -120,7 +120,6 @@ def insert_payday_data(name, date, num_breaks):
             )
         conn.commit()
 
-
 def calculate_total_pay(name, total_time, num_breaks):
     """Calculates the total pay based on hourly or break pay structure."""
     
@@ -138,18 +137,17 @@ def calculate_total_pay(name, total_time, num_breaks):
         return 0
 
 # Function to insert data into the Operations table
-def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
+def insert_operations_data(name, sort_or_ship, whos_show, show_date, break_numbers):
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, Break_Numbers)
+                INSERT INTO Operations (name, sort_or_ship, whos_show, show_date, Break_Numbers)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
-                (name, sort_or_ship, whos_break, show_date, break_numbers)  # ✅ Insert Break_Numbers
+                (name, sort_or_ship, whos_show, show_date, break_numbers)  # ✅ Insert Break_Numbers
             )
         conn.commit()
-
 
 # Function to archive and reset data
 def archive_and_reset():
@@ -263,6 +261,23 @@ def generate_weekly_payroll_report(week_start):
     # Select relevant columns
     payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
 
+    # Insert the payroll data into the PayrollSummary table
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            for _, row in payroll_df.iterrows():
+                cursor.execute(
+                    """
+                    INSERT INTO PayrollSummary (week_start, name, total_hours, total_breaks, total_pay)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (week_start, name) DO UPDATE
+                    SET total_hours = EXCLUDED.total_hours,
+                        total_breaks = EXCLUDED.total_breaks,
+                        total_pay = EXCLUDED.total_pay;
+                    """,
+                    (week_start, row["name"], row["total_hours"], row["total_breaks"], row["total_pay"])
+                )
+        conn.commit()
+
     return payroll_df
 
 
@@ -278,26 +293,50 @@ else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 
+# === 📌 User Authentication Section ===
+with st.expander("🔐 User Authentication", expanded=True):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>Login to Access Your Work</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
 
-# === 📌 Expander 1: Get Paid Section ===
+    # Login form
+    selected_user = st.selectbox("Select Your Name", all_names)
+    entered_password = st.text_input("Enter Password", type="password")
+
+    # Authentication logic
+    if entered_password:
+        if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
+            st.success(f"✅ Welcome, {selected_user}!")
+            st.session_state["authenticated_user"] = selected_user  # Store in session
+        else:
+            st.error("❌ Incorrect password.")
+            st.session_state.pop("authenticated_user", None)  # Remove from session if incorrect
+
+    # Logout button
+    if "authenticated_user" in st.session_state:
+        if st.button("🚪 Logout"):
+            st.session_state.pop("authenticated_user")  # Remove user from session
+            st.rerun()
+
+# === 📌 Expander 2: Get Paid Section ===
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Get Paid</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
-    with st.form("base_data_form"):
-        name = st.selectbox("Name *", all_names, key="name")
-        date = st.date_input("📅 Date *", key="date")
-        num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        with st.form("base_data_form"):
+            name = st.session_state["authenticated_user"]  # Use authenticated user
+            date = st.date_input("📅 Date *", key="date")
+            num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
-        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
+            submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
 
-    if submit_button:
-        if name == "Select your name":
-            st.error("❌ You must select a valid name.")
-        else:
-            # Ensure that pay data is only saved for valid users
+        if submit_button:
             week_start = date - timedelta(days=date.weekday())
             official_hours = get_punch_clock_hours(name, week_start)
 
@@ -307,14 +346,19 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             insert_payday_data(name, date, num_breaks)
             st.success("✅ Data saved!")
 
-
-# === 📌 Expander 2: Track Shows ===
+# === 📌 Expander 3: Track Shows ===
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Track Shows</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        name = st.session_state["authenticated_user"]  # Use the authenticated name
+
+    
     num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
     show_data = []
@@ -340,64 +384,53 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     show_submit = st.button("Submit Show Data")
 
     if show_submit:
-    
-        if name == "Select your name" or not name:  # ✅ Ensure Name is selected
-            st.error("❌ You must submit your name in the Get Paid form before submitting this form.")
-        else:
-            for show in show_data:
-                insert_operations_data(
-                    name, 
-                    show["sort_or_ship"], 
-                    show["whos_show"], 
-                    show["show_date"], 
-                    show["break_numbers"]  # ✅ Pass new value to database function
-                )
-            st.success("✅ Show Data submitted successfully!")
+        for show in show_data:
+            insert_operations_data(
+                name, 
+                show["sort_or_ship"], 
+                show["whos_show"], 
+                show["show_date"], 
+                show["break_numbers"]  # ✅ Pass new value to database function
+            )
+        st.success("✅ Show Data submitted successfully!")
 
-    # === 📌 Expander 3: View Data ===
+
+    # === 📌 Expander 4: View Data ===
+# === 📌 Expander 4: View Data ===
 with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Your Work</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
-    
-    selected_user = st.selectbox("Select Your Name", all_names)
-    entered_password = st.text_input("Enter Password", type="password")
-
-    if entered_password:
-        if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
-            st.success(f"✅ Welcome, {selected_user}!")
-            st.session_state["authenticated_user"] = selected_user
-        else:
-            st.error("❌ Incorrect password.")
-            st.session_state.pop("authenticated_user", None)
-
-    if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
-        logged_in_user = st.session_state["authenticated_user"]
-        st.subheader(f"📊 Your Work Log, {logged_in_user}")
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        selected_user = st.session_state["authenticated_user"]
+        st.subheader(f"📊 Your Work Log, {selected_user}")
 
         try:
-            with st.spinner("🔄 Loading your Operations log..."):
+            with st.spinner("🔄 Loading your work summary..."):
                 df_operations = pd.read_sql_query(
                     "SELECT * FROM Operations WHERE name = %s",
                     get_connection(),
-                    params=(logged_in_user,)
+                    params=(selected_user,)
                 )
-                st.subheader("📋 Operations Log")
+                st.subheader("📋 Show Log")
                 st.dataframe(df_operations)
 
-            with st.spinner("🔄 Loading your Payday log..."):
+            with st.spinner("🔄 Loading your Payroll report..."):
                 df_payday = pd.read_sql_query(
-                    "SELECT * FROM Payday WHERE name = %s",
+                    "SELECT * FROM payrollsummary WHERE name = %s",
                     get_connection(),
-                    params=(logged_in_user,)
+                    params=(selected_user,)
                 )
-                st.subheader("💰 Payday Log")
+                st.subheader("💰 Payroll Summary")
                 st.dataframe(df_payday)
 
         except Exception as e:
             st.error(f"❌ Failed to fetch data: {e}")
+
 
 # === 📌 Admin View (Secure with Password) ===
 with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
@@ -409,19 +442,18 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
 
     if admin_password == "leroy":
         st.success("Access granted! Viewing all submissions.")
-        st.subheader("📊 All Submitted Data")
 
     #generate payroll report
         # Fetch available weeks from database
         available_weeks = get_available_weeks()
 
         if available_weeks:
-            selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
+            selected_week_start = st.selectbox("Select week start date for payroll report generation", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
         else:
             st.warning("⚠️ No Punch Clock data available.")
             selected_week_start = None
 
-        if selected_week_start and st.button("📊 Generate Report"):
+        if selected_week_start and st.button("📊 Generate Payroll Report"):
             payroll_df = generate_weekly_payroll_report(selected_week_start)
 
             # Display the report in Streamlit
@@ -431,43 +463,39 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             # Offer CSV download
             csv = payroll_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📥 Download Payroll Report as CSV",
+                label="Download Payroll Report as CSV",
                 data=csv,
                 file_name=f"Payroll_Report_{selected_week_start}.csv",
                 mime="text/csv"
             )
 
+        if st.button("View Operations Table"):
+            try:
+                with st.spinner("🔄 Loading Operations table..."):
+                    df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
+                    st.subheader("📋 Operations Table")
+                    st.dataframe(df_operations)
 
+            except Exception as e:
+                st.error(f"❌ Failed to fetch data: {e}")
 
-
-        try:
-            with st.spinner("🔄 Loading Operations data..."):
-                df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
-                st.subheader("📋 Operations Table")
-                st.dataframe(df_operations)
-
-            with st.spinner("🔄 Loading Payday data..."):
-                df_payday = pd.read_sql_query("SELECT * FROM Payday", get_connection())
-                st.subheader("💰 Payday Table")
-                st.dataframe(df_payday)
-
-        except Exception as e:
-            st.error(f"❌ Failed to fetch data: {e}")
-
-        if st.button("📦 Archive & Reset Data"):
+        if st.button("Archive & Reset Data"):
             archive_and_reset()
             st.success("✅ Data has been archived and reset!")
             st.rerun()
 
-        if st.button("📂 View Archived Data"):
-            try:
-                df_operations_archive, df_payday_archive = get_archived_data()
-                st.subheader("📦 Archived Operations Table")
-                st.dataframe(df_operations_archive)
-                st.subheader("📦 Archived Payday Table")
-                st.dataframe(df_payday_archive)
-            except Exception as e:
-                st.error(f"❌ Failed to fetch archived data: {e}")
+        
+        df_operations_archive, _ = get_archived_data()  # Ignore the payroll archive
+
+        # Convert Operations Archive to CSV
+        operations_csv = df_operations_archive.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label="Download Archived Operations Data",
+            data=operations_csv,
+            file_name="Archived_Operations.csv",
+            mime="text/csv"
+        )
 
 
 # === 📂 Expander: Upload Multiple Punch Clock CSVs ===
