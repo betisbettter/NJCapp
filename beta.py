@@ -393,13 +393,13 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
         st.subheader(f"📊 Your Work Log, {logged_in_user}")
 
         try:
-            with st.spinner("🔄 Loading your Operations log..."):
+            with st.spinner("🔄 Loading your work summary..."):
                 df_operations = pd.read_sql_query(
                     "SELECT * FROM Operations WHERE name = %s",
                     get_connection(),
                     params=(logged_in_user,)
                 )
-                st.subheader("📋 Operations Log")
+                st.subheader("Show Log")
                 st.dataframe(df_operations)
 
             with st.spinner("🔄 Loading your Payroll report..."):
@@ -408,7 +408,7 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
                     get_connection(),
                     params=(logged_in_user,)
                 )
-                st.subheader("💰 Paydroll summary")
+                st.subheader("💰 Payroll summary")
                 st.dataframe(df_payday)
 
         except Exception as e:
