@@ -468,25 +468,18 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             st.success("✅ Data has been archived and reset!")
             st.rerun()
 
-        if st.button("📂 Download Archived Data as CSV"):
-            try:
-                # Fetch only Operations Archive data
-                df_operations_archive, _ = get_archived_data()  # Ignore the payroll archive
+        
+        df_operations_archive, _ = get_archived_data()  # Ignore the payroll archive
 
-                # Convert Operations Archive to CSV
-                operations_csv = df_operations_archive.to_csv(index=False).encode("utf-8")
+        # Convert Operations Archive to CSV
+        operations_csv = df_operations_archive.to_csv(index=False).encode("utf-8")
 
-                # Provide download button
-                st.subheader("📦 Download Archived Data")
-                st.download_button(
-                    label="📥 Download Archived Operations Data",
-                    data=operations_csv,
-                    file_name="Archived_Operations.csv",
-                    mime="text/csv"
-                )
-
-            except Exception as e:
-                st.error(f"❌ Failed to fetch archived data: {e}")
+        st.download_button(
+            label="Download Archived Operations Data",
+            data=operations_csv,
+            file_name="Archived_Operations.csv",
+            mime="text/csv"
+        )
 
 
 # === 📂 Expander: Upload Multiple Punch Clock CSVs ===
