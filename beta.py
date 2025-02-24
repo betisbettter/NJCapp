@@ -231,7 +231,7 @@ def generate_weekly_payroll_report(week_start):
     Includes break numbers if submitted. If a user has no data, their hours and pay are set to 0.
     """
     with get_connection() as conn:
-        # Fetch all employee names
+        # Fetch all employee names to ensure everyone is listed
         employee_df = pd.read_sql_query("SELECT DISTINCT name FROM PunchClockData", conn)
 
         # Fetch punch clock data for the selected week
@@ -252,6 +252,25 @@ def generate_weekly_payroll_report(week_start):
             conn,
             params=(week_start, week_start + timedelta(days=6))
         )
+
+    # Merge all datasets to ensure all employees appear
+    payroll_df = pd.merge(employee_df, punch_clock_df, on="name", how="left")
+    payroll_df = pd.merge(payroll_df, breaks_df, on="name", how="left")
+
+    # Set missing hours and breaks to 0 if no data exists
+    payroll_df["total_hours"] = payroll_df["total_hours"].fillna(0)
+    payroll_df["total_breaks"] = payroll_df["total_breaks"].fillna(0)
+
+    # Compute total pay based on hours and breaks
+    payroll_df["total_pay"] = payroll_df.apply(
+        lambda row: calculate_total_pay(row["name"], row["total_hours"], row["total_breaks"]),
+        axis=1
+    )
+
+    # Select relevant columns for output
+    payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
+
+    return payroll_df
 
     # Merge punch clock and break data to ensure all employees are listed
     payroll_df = pd.merge(employee_df, punch_clock_df, on="name", how="left")
