@@ -120,7 +120,6 @@ def insert_payday_data(name, date, num_breaks):
             )
         conn.commit()
 
-
 def calculate_total_pay(name, total_time, num_breaks):
     """Calculates the total pay based on hourly or break pay structure."""
     
@@ -138,7 +137,7 @@ def calculate_total_pay(name, total_time, num_breaks):
         return 0
 
 # Function to insert data into the Operations table
-def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
+def insert_operations_data(name, sort_or_ship, whos_show, show_date, break_numbers):
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
@@ -146,10 +145,9 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
                 INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, Break_Numbers)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
-                (name, sort_or_ship, whos_break, show_date, break_numbers)  # ✅ Insert Break_Numbers
+                (name, sort_or_ship, whos_show, show_date, break_numbers)  # ✅ Insert Break_Numbers
             )
         conn.commit()
-
 
 # Function to archive and reset data
 def archive_and_reset():
