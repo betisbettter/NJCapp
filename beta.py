@@ -415,7 +415,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
         available_weeks = get_available_weeks()
 
         if available_weeks:
-            selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
+            selected_week_start = st.selectbox("Select week start date for payroll report generation", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
         else:
             st.warning("⚠️ No Punch Clock data available.")
             selected_week_start = None
