@@ -213,14 +213,19 @@ def calculate_total_pay(name, total_time, num_breaks):
 
 def generate_weekly_payroll_report(week_start):
     """
-    Generates a payroll report using ONLY punch clock data.
-    Includes break numbers if submitted. If a user has no data, their hours and pay are set to 0.
+    Generates a payroll report including all employees with either punch clock data or breaks submitted.
     """
     week_end = week_start + timedelta(days=6)  # Define the full week range
 
     with get_connection() as conn:
-        # Fetch all employee names (ensures all users are included)
-        employee_df = pd.read_sql_query("SELECT DISTINCT name FROM PunchClockData", conn)
+        # Fetch all unique employee names from both PunchClockData and Payday
+        employee_df = pd.read_sql_query("""
+            SELECT DISTINCT name FROM (
+                SELECT name FROM PunchClockData
+                UNION
+                SELECT name FROM Payday
+            ) AS all_names
+        """, conn)
 
         # Fetch punch clock data for the selected week
         punch_clock_df = pd.read_sql_query(
@@ -241,7 +246,7 @@ def generate_weekly_payroll_report(week_start):
             params=(week_start, week_end)
         )
 
-    # Merge punch clock and breaks data to ensure all employees are listed
+    # Merge punch clock and breaks data to ensure all employees are included
     payroll_df = pd.merge(employee_df, punch_clock_df, on="name", how="left")
     payroll_df = pd.merge(payroll_df, breaks_df, on="name", how="left")
 
@@ -259,6 +264,7 @@ def generate_weekly_payroll_report(week_start):
     payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
 
     return payroll_df
+
 
 
 
