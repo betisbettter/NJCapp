@@ -99,6 +99,14 @@ def get_punch_clock_hours(name, week_start):
             return df.iloc[0]["total_hours"]  # Return first match
         return None  # If no data found, return None
     
+
+def get_available_weeks():
+    """Fetch distinct week start dates from the PunchClockData table."""
+    with get_connection() as conn:
+        df = pd.read_sql_query("SELECT DISTINCT week_start FROM PunchClockData ORDER BY week_start DESC", conn)
+    return df["week_start"].tolist() if not df.empty else []
+
+    
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
     """Insert data into the Payday table, calculating total pay correctly."""
     
@@ -375,10 +383,25 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
         st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
 
-# Select the start date of the week
-    selected_week_start = st.date_input("Select Week Start Date (Monday)", datetime.today() - timedelta(days=datetime.today().weekday()))
+# === 📂 Expander: Weekly Payroll Report ===
+with st.expander("📊 Weekly Payroll Report (Click to Expand/Collapse)", expanded=False):
+    st.markdown("""
+        <h2 style='text-align: center;'>📊 Weekly Payroll Report</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
 
-    if st.button("📊 Generate Report"):
+
+#generate payroll report
+    # Fetch available weeks from database
+    available_weeks = get_available_weeks()
+
+    if available_weeks:
+        selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
+    else:
+        st.warning("⚠️ No Punch Clock data available.")
+        selected_week_start = None
+
+    if selected_week_start and st.button("📊 Generate Report"):
         payroll_df = generate_weekly_payroll_report(selected_week_start)
 
         # Display the report in Streamlit
@@ -393,6 +416,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             file_name=f"Payroll_Report_{selected_week_start}.csv",
             mime="text/csv"
         )
+
 
 
 
