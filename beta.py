@@ -1,3 +1,6 @@
+
+
+
 import streamlit as st
 import psycopg2
 import pandas as pd
@@ -293,26 +296,50 @@ else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 
 
+# === 📌 User Authentication Section ===
+with st.expander("🔐 User Authentication", expanded=True):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>Login to Access Your Work</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
 
-# === 📌 Expander 1: Get Paid Section ===
+    # Login form
+    selected_user = st.selectbox("Select Your Name", all_names)
+    entered_password = st.text_input("Enter Password", type="password")
+
+    # Authentication logic
+    if entered_password:
+        if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
+            st.success(f"✅ Welcome, {selected_user}!")
+            st.session_state["authenticated_user"] = selected_user  # Store in session
+        else:
+            st.error("❌ Incorrect password.")
+            st.session_state.pop("authenticated_user", None)  # Remove from session if incorrect
+
+    # Logout button
+    if "authenticated_user" in st.session_state:
+        if st.button("🚪 Logout"):
+            st.session_state.pop("authenticated_user")  # Remove user from session
+            st.rerun()
+
+# === 📌 Expander 2: Get Paid Section ===
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Get Paid</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
-    with st.form("base_data_form"):
-        name = st.selectbox("Name *", all_names, key="name")
-        date = st.date_input("📅 Date *", key="date")
-        num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        with st.form("base_data_form"):
+            name = st.session_state["authenticated_user"]  # Use authenticated user
+            date = st.date_input("📅 Date *", key="date")
+            num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
-        submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
+            submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
 
-    if submit_button:
-        if name == "Select your name":
-            st.error("❌ You must select a valid name.")
-        else:
-            # Ensure that pay data is only saved for valid users
+        if submit_button:
             week_start = date - timedelta(days=date.weekday())
             official_hours = get_punch_clock_hours(name, week_start)
 
@@ -322,14 +349,19 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             insert_payday_data(name, date, num_breaks)
             st.success("✅ Data saved!")
 
-
-# === 📌 Expander 2: Track Shows ===
+# === 📌 Expander 3: Track Shows ===
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Track Shows</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        name = st.session_state["authenticated_user"]  # Use the authenticated name
+
+    
     num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
     show_data = []
@@ -355,64 +387,53 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     show_submit = st.button("Submit Show Data")
 
     if show_submit:
-    
-        if name == "Select your name" or not name:  # ✅ Ensure Name is selected
-            st.error("❌ You must submit your name in the Get Paid form before submitting this form.")
-        else:
-            for show in show_data:
-                insert_operations_data(
-                    name, 
-                    show["sort_or_ship"], 
-                    show["whos_show"], 
-                    show["show_date"], 
-                    show["break_numbers"]  # ✅ Pass new value to database function
-                )
-            st.success("✅ Show Data submitted successfully!")
+        for show in show_data:
+            insert_operations_data(
+                name, 
+                show["sort_or_ship"], 
+                show["whos_show"], 
+                show["show_date"], 
+                show["break_numbers"]  # ✅ Pass new value to database function
+            )
+        st.success("✅ Show Data submitted successfully!")
 
-    # === 📌 Expander 3: View Data ===
+
+    # === 📌 Expander 4: View Data ===
+# === 📌 Expander 4: View Data ===
 with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
         <h2 style='text-align: center; font-size: 24px;'>Your Work</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
-    
-    selected_user = st.selectbox("Select Your Name", all_names)
-    entered_password = st.text_input("Enter Password", type="password")
-
-    if entered_password:
-        if selected_user in user_passwords and entered_password == user_passwords[selected_user]:
-            st.success(f"✅ Welcome, {selected_user}!")
-            st.session_state["authenticated_user"] = selected_user
-        else:
-            st.error("❌ Incorrect password.")
-            st.session_state.pop("authenticated_user", None)
-
-    if "authenticated_user" in st.session_state and st.session_state["authenticated_user"]:
-        logged_in_user = st.session_state["authenticated_user"]
-        st.subheader(f"📊 Your Work Log, {logged_in_user}")
+    if "authenticated_user" not in st.session_state:
+        st.error("⚠️ Please log in first.")
+    else:
+        selected_user = st.session_state["authenticated_user"]
+        st.subheader(f"📊 Your Work Log, {selected_user}")
 
         try:
             with st.spinner("🔄 Loading your work summary..."):
                 df_operations = pd.read_sql_query(
                     "SELECT * FROM Operations WHERE name = %s",
                     get_connection(),
-                    params=(logged_in_user,)
+                    params=(selected_user,)
                 )
-                st.subheader("Show Log")
+                st.subheader("📋 Show Log")
                 st.dataframe(df_operations)
 
             with st.spinner("🔄 Loading your Payroll report..."):
                 df_payday = pd.read_sql_query(
                     "SELECT * FROM payrollsummary WHERE name = %s",
                     get_connection(),
-                    params=(logged_in_user,)
+                    params=(selected_user,)
                 )
-                st.subheader("💰 Payroll summary")
+                st.subheader("💰 Payroll Summary")
                 st.dataframe(df_payday)
 
         except Exception as e:
             st.error(f"❌ Failed to fetch data: {e}")
+
 
 # === 📌 Admin View (Secure with Password) ===
 with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
@@ -508,4 +529,3 @@ with st.expander("📂 Upload Weekly Punch Clock Data"):
                 )
 
         st.success("✅ All Punch Clock Data Successfully Saved to Database!")
-
