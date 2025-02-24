@@ -2,7 +2,9 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 import os
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
+import re
+
 
 
 # === 📌 Database Connection & Utility Functions ===
@@ -31,17 +33,109 @@ DB_URL = st.secrets["database"]["url"]
 # Function to connect to the PostgreSQL database
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
+#Punch clock integration functions
+def extract_date_from_filename(filename):
+    """Extracts YYYYMMDD date from filename and converts it to a date object."""
+    match = re.search(r"(\d{8})", filename)  # Looks for an 8-digit number in filename
+    if match:
+        return datetime.strptime(match.group(1), "%Y%m%d").date()  # Convert to date
+    return None  # Return None if no date found 
 
-# Function to calculate total work hours
-def calculate_total_time(time_in, time_out):
-    if time_in and time_out:
-        time_in = datetime.combine(datetime.today(), time_in)
-        time_out = datetime.combine(datetime.today(), time_out)
+def extract_punch_clock_data(file_path, filename):
+    """
+    Extracts the employee name, total hours worked, and week start date from the punch clock CSV.
+    """
+    df = pd.read_csv(file_path, header=None, encoding="latin1")
+    raw_name = df.iloc[2, 3] if pd.notna(df.iloc[2, 3]) else None
+  # name = re.sub(r"\s*\(\d+\)", "", raw_name).strip() if raw_name else None
+  # first name extract
+    name = re.sub(r"\s*\(\d+\)", "", raw_name).strip().split()[0] if raw_name else None 
 
-        total_time_seconds = (time_out - time_in).total_seconds()
-        total_time_hours = round(total_time_seconds / 3600, 2)
-        return total_time_hours
-    return None
+    # Extract total hours from row 11, column 5
+    total_hours = df.iloc[11, 5] if pd.notna(df.iloc[11, 5]) else None
+
+    # Extract week start date from filename
+    week_start_date = extract_date_from_filename(filename)
+
+    return {"name": name, "total_hours": total_hours, "week_start_date": week_start_date}
+
+def insert_punch_clock_data(name, total_hours, week_start):
+    """
+    Inserts or updates punch clock data into the PunchClockData table.
+    """
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO PunchClockData (name, week_start, total_hours)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (name, week_start) DO UPDATE
+                SET total_hours = EXCLUDED.total_hours;
+                """,
+                (name, week_start, total_hours)
+            )
+        conn.commit()
+
+def get_punch_clock_hours(name, week_start):
+    """Retrieve total hours worked from PunchClockData for a given week."""
+    with get_connection() as conn:
+        df = pd.read_sql_query(
+            "SELECT total_hours FROM PunchClockData WHERE name = %s AND week_start = %s",
+            conn,
+            params=(name, week_start)
+        )
+        if not df.empty:
+            return df.iloc[0]["total_hours"]  # Return first match
+        return None  # If no data found, return None
+    
+def get_available_weeks():
+    """Fetch distinct week start dates from the PunchClockData table."""
+    with get_connection() as conn:
+        df = pd.read_sql_query("SELECT DISTINCT week_start FROM PunchClockData ORDER BY week_start DESC", conn)
+    return df["week_start"].tolist() if not df.empty else []
+    
+def insert_payday_data(name, date, num_breaks):
+    """Insert Payday data using ONLY punch clock hours. If no data is found, set hours to 0."""
+    
+    # Calculate week start date (Monday of that week)
+    week_start = date - timedelta(days=date.weekday())  
+
+    # Fetch official hours from PunchClockData
+    official_hours = get_punch_clock_hours(name, week_start)
+
+    # 🛑 If no punch clock data is found, set total hours to 0
+    total_time = official_hours if official_hours is not None else 0  
+
+    # Calculate total pay based on official punch clock time
+    total_pay = calculate_total_pay(name, total_time, num_breaks)
+
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO Payday (name, date, num_breaks, total_pay)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (name, date, num_breaks, total_pay)  
+            )
+        conn.commit()
+
+
+def calculate_total_pay(name, total_time, num_breaks):
+    """Calculates the total pay based on hourly or break pay structure."""
+    
+    if name not in pay_rates:
+        return 0  # Default to 0 if no pay rate is set
+
+    pay_type = pay_rates[name]["type"]
+    rate = pay_rates[name]["rate"]
+
+    if pay_type == "hourly":
+        return round((total_time or 0) * rate, 2)  # Multiply hours worked by hourly rate
+    elif pay_type == "break":
+        return round(num_breaks * rate, 2)  # Multiply breaks by break rate
+    else:
+        return 0
 
 # Function to insert data into the Operations table
 def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
@@ -53,22 +147,6 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
                 VALUES (%s, %s, %s, %s, %s)
                 """,
                 (name, sort_or_ship, whos_break, show_date, break_numbers)  # ✅ Insert Break_Numbers
-            )
-        conn.commit()
-
-
-# Function to insert data into the Payday table with Total Pay
-def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
-    total_pay = calculate_total_pay(name, total_time, num_breaks)  # ✅ New Pay Calculation
-
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks, total_pay)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (name, date, time_in, time_out, total_time, num_breaks, total_pay)  # ✅ Insert Total Pay
             )
         conn.commit()
 
@@ -133,6 +211,60 @@ def calculate_total_pay(name, total_time, num_breaks):
     else:
         return 0  # Default case (should never happen)
 
+def generate_weekly_payroll_report(week_start):
+    """
+    Generates a payroll report including all employees with either punch clock data or breaks submitted.
+    """
+    week_end = week_start + timedelta(days=6)  # Define the full week range
+
+    with get_connection() as conn:
+        # Fetch all unique employee names from both PunchClockData and Payday
+        employee_df = pd.read_sql_query("""
+            SELECT DISTINCT name FROM (
+                SELECT name FROM PunchClockData
+                UNION
+                SELECT name FROM Payday
+            ) AS all_names
+        """, conn)
+
+        # Fetch punch clock data for the selected week
+        punch_clock_df = pd.read_sql_query(
+            "SELECT name, total_hours FROM PunchClockData WHERE week_start = %s",
+            conn,
+            params=(week_start,)
+        )
+
+        # Fetch and sum `num_breaks` from `Payday` where the date is within the selected week
+        breaks_df = pd.read_sql_query(
+            """
+            SELECT name, COALESCE(SUM(num_breaks), 0) AS total_breaks
+            FROM Payday 
+            WHERE date BETWEEN %s AND %s 
+            GROUP BY name
+            """,
+            conn,
+            params=(week_start, week_end)
+        )
+
+    # Merge punch clock and breaks data to ensure all employees are included
+    payroll_df = pd.merge(employee_df, punch_clock_df, on="name", how="left")
+    payroll_df = pd.merge(payroll_df, breaks_df, on="name", how="left")
+
+    # Set missing hours and breaks to 0 if no data exists
+    payroll_df["total_hours"] = payroll_df["total_hours"].fillna(0)
+    payroll_df["total_breaks"] = payroll_df["total_breaks"].fillna(0)
+
+    # Compute total pay based on hours and breaks
+    payroll_df["total_pay"] = payroll_df.apply(
+        lambda row: calculate_total_pay(row["name"], row["total_hours"], row["total_breaks"]),
+        axis=1
+    )
+
+    # Select relevant columns
+    payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
+
+    return payroll_df
+
 
 
 
@@ -150,7 +282,7 @@ else:
 # === 📌 Expander 1: Get Paid Section ===
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>💰 Get Paid</h2>
+        <h2 style='text-align: center; font-size: 24px;'>Get Paid</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
@@ -159,24 +291,27 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         date = st.date_input("📅 Date *", key="date")
         num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
-        st.write("⏰ Work Hours:")
-        time_in = st.time_input("🔵 Time In", value=time(9, 0))
-        time_out = st.time_input("🔴 Time Out", value=time(17, 0))
-
         submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
 
     if submit_button:
         if name == "Select your name":
             st.error("❌ You must select a valid name.")
         else:
-            total_time = calculate_total_time(time_in, time_out)
-            insert_payday_data(name, date, time_in, time_out, total_time, num_breaks)
+            # Ensure that pay data is only saved for valid users
+            week_start = date - timedelta(days=date.weekday())
+            official_hours = get_punch_clock_hours(name, week_start)
+
+            if official_hours is None:
+                st.warning(f"⚠️ No punch clock data found for {name}. Hours set to 0, but breaks are recorded.")
+            
+            insert_payday_data(name, date, num_breaks)
             st.success("✅ Data saved!")
+
 
 # === 📌 Expander 2: Track Shows ===
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h2>
+        <h2 style='text-align: center; font-size: 24px;'>Track Shows</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
@@ -276,6 +411,35 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
         st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
 
+    #generate payroll report
+        # Fetch available weeks from database
+        available_weeks = get_available_weeks()
+
+        if available_weeks:
+            selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
+        else:
+            st.warning("⚠️ No Punch Clock data available.")
+            selected_week_start = None
+
+        if selected_week_start and st.button("📊 Generate Report"):
+            payroll_df = generate_weekly_payroll_report(selected_week_start)
+
+            # Display the report in Streamlit
+            st.subheader("📋 Payroll Summary")
+            st.dataframe(payroll_df)
+
+            # Offer CSV download
+            csv = payroll_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Download Payroll Report as CSV",
+                data=csv,
+                file_name=f"Payroll_Report_{selected_week_start}.csv",
+                mime="text/csv"
+            )
+
+
+
+
         try:
             with st.spinner("🔄 Loading Operations data..."):
                 df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
@@ -304,3 +468,34 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
                 st.dataframe(df_payday_archive)
             except Exception as e:
                 st.error(f"❌ Failed to fetch archived data: {e}")
+
+
+# === 📂 Expander: Upload Multiple Punch Clock CSVs ===
+with st.expander("📂 Upload Weekly Punch Clock Data"):
+    st.markdown("""
+        <h2 style='text-align: center; font-size: 24px;'>Upload Punch Clock Data</h2>
+        <hr style='border: 1px solid gray;'>
+    """, unsafe_allow_html=True)
+
+    uploaded_files = st.file_uploader("Upload Punch Clock CSVs", type=["csv"], accept_multiple_files=True)
+
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            # Extract Data from Each CSV
+            punch_clock_data = extract_punch_clock_data(uploaded_file, uploaded_file.name)
+
+            # Display Extracted Data for Admin Review
+            st.write(f"🧑 Employee: {punch_clock_data['name']}")
+            st.write(f"⏳ Total Hours Worked: {punch_clock_data['total_hours']}")
+            st.write(f"📆 Week Start Date: {punch_clock_data['week_start_date']}")  # ✅ Auto-detected!
+
+            # Save to Database
+            if punch_clock_data["week_start_date"]:
+                insert_punch_clock_data(
+                    punch_clock_data["name"], 
+                    punch_clock_data["total_hours"], 
+                    punch_clock_data["week_start_date"]
+                )
+
+        st.success("✅ All Punch Clock Data Successfully Saved to Database!")
+

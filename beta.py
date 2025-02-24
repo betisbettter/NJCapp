@@ -437,19 +437,12 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
                 mime="text/csv"
             )
 
-
-
-
         try:
             with st.spinner("🔄 Loading Operations data..."):
                 df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
                 st.subheader("📋 Operations Table")
                 st.dataframe(df_operations)
 
-            with st.spinner("🔄 Loading Payday data..."):
-                df_payday = pd.read_sql_query("SELECT * FROM Payday", get_connection())
-                st.subheader("💰 Payday Table")
-                st.dataframe(df_payday)
 
         except Exception as e:
             st.error(f"❌ Failed to fetch data: {e}")
