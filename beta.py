@@ -33,7 +33,7 @@ DB_URL = st.secrets["database"]["url"]
 # Function to connect to the PostgreSQL database
 def get_connection():
     return psycopg2.connect(DB_URL, sslmode="require")
-
+#Punch clock integration functions
 def extract_date_from_filename(filename):
     """Extracts YYYYMMDD date from filename and converts it to a date object."""
     match = re.search(r"(\d{8})", filename)  # Looks for an 8-digit number in filename
@@ -120,9 +120,6 @@ def insert_payday_data(name, date, time_in, time_out, num_breaks):
             )
         conn.commit()
 
-
-
-
 def calculate_total_pay(name, total_time, num_breaks):
     """Calculates the total pay based on hourly or break pay structure."""
     
@@ -139,9 +136,6 @@ def calculate_total_pay(name, total_time, num_breaks):
     else:
         return 0
 
-
-
-
 # Function to insert data into the Operations table
 def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numbers):
     with get_connection() as conn:
@@ -154,7 +148,6 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
                 (name, sort_or_ship, whos_break, show_date, break_numbers)  # ✅ Insert Break_Numbers
             )
         conn.commit()
-
 
 # Function to insert data into the Payday table with Total Pay
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
@@ -170,7 +163,6 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
                 (name, date, time_in, time_out, total_time, num_breaks, total_pay)  # ✅ Insert Total Pay
             )
         conn.commit()
-
 
 # Function to archive and reset data
 def archive_and_reset():
