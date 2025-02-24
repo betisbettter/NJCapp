@@ -437,7 +437,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
                 mime="text/csv"
             )
 
-        if st.button("View Operations Table")
+        if st.button("View Operations Table"):
             try:
                 with st.spinner("🔄 Loading Operations table..."):
                     df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
