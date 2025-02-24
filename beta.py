@@ -431,7 +431,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             # Offer CSV download
             csv = payroll_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📥 Download Payroll Report as CSV",
+                label="Download Payroll Report as CSV",
                 data=csv,
                 file_name=f"Payroll_Report_{selected_week_start}.csv",
                 mime="text/csv"
@@ -447,12 +447,12 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             except Exception as e:
                 st.error(f"❌ Failed to fetch data: {e}")
 
-        if st.button("📦 Archive & Reset Data"):
+        if st.button("Archive & Reset Data"):
             archive_and_reset()
             st.success("✅ Data has been archived and reset!")
             st.rerun()
 
-        if st.button("📂 View Archived Data"):
+        if st.button("View Archived Data"):
             try:
                 df_operations_archive, df_payday_archive = get_archived_data()
                 st.subheader("📦 Archived Operations Table")
