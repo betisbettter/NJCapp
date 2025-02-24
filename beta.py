@@ -437,15 +437,15 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
                 mime="text/csv"
             )
 
-        try:
-            with st.spinner("🔄 Loading Operations data..."):
-                df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
-                st.subheader("📋 Operations Table")
-                st.dataframe(df_operations)
+        if st.button("View Operations Table")
+            try:
+                with st.spinner("🔄 Loading Operations table..."):
+                    df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
+                    st.subheader("📋 Operations Table")
+                    st.dataframe(df_operations)
 
-
-        except Exception as e:
-            st.error(f"❌ Failed to fetch data: {e}")
+            except Exception as e:
+                st.error(f"❌ Failed to fetch data: {e}")
 
         if st.button("📦 Archive & Reset Data"):
             archive_and_reset()
