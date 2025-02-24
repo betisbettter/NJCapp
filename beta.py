@@ -375,6 +375,27 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
         st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
 
+# Select the start date of the week
+    selected_week_start = st.date_input("Select Week Start Date (Monday)", datetime.today() - timedelta(days=datetime.today().weekday()))
+
+    if st.button("📊 Generate Report"):
+        payroll_df = generate_weekly_payroll_report(selected_week_start)
+
+        # Display the report in Streamlit
+        st.subheader("📋 Payroll Summary")
+        st.dataframe(payroll_df)
+
+        # Offer CSV download
+        csv = payroll_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Download Payroll Report as CSV",
+            data=csv,
+            file_name=f"Payroll_Report_{selected_week_start}.csv",
+            mime="text/csv"
+        )
+
+
+
         try:
             with st.spinner("🔄 Loading Operations data..."):
                 df_operations = pd.read_sql_query("SELECT * FROM Operations", get_connection())
