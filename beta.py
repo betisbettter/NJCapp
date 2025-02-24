@@ -319,7 +319,6 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         if name == "Select your name":
             st.error("❌ You must select a valid name.")
         else:
-            total_time = calculate_total_time(time_in, time_out)
             insert_payday_data(name, date, num_breaks)
 
             st.success("✅ Data saved!")
