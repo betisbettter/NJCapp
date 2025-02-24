@@ -399,7 +399,7 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
             st.success("✅ Show Data submitted successfully!")
 
 
-    # === 📌 Expander 4: View Data ===
+
 # === 📌 Expander 4: View Data ===
 with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
@@ -430,6 +430,7 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
                     params=(selected_user,)
                 )
                 st.subheader("💰 Payroll Summary")
+                st.write("This table will be updated after the pay period")
                 st.dataframe(df_payday)
 
         except Exception as e:
