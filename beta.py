@@ -319,7 +319,8 @@ with st.expander("🔐 User Authentication", expanded=True):
     # Logout button
     if "authenticated_user" in st.session_state:
         if st.button("🚪 Logout"):
-            st.session_state.pop("authenticated_user")  # Remove user from session
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]  # Clear all stored session data
             st.rerun()
 
 # === 📌 Expander 2: Get Paid Section ===
@@ -337,7 +338,7 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             date = st.date_input("📅 Date *", key="date")
             num_breaks = st.number_input("☕ Number of Breaks", min_value=0, step=1, key="num_breaks")
 
-            submit_button = st.form_submit_button("💾 Save Pay Data", use_container_width=True)
+            submit_button = st.form_submit_button("Save Pay Data", use_container_width=True)
 
         if submit_button:
             week_start = date - timedelta(days=date.weekday())
@@ -362,40 +363,40 @@ with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
         name = st.session_state["authenticated_user"]  # Use the authenticated name
 
     
-    num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
+        num_entries = st.number_input("Number of entries *", min_value=1, step=1, key="num_shows")
 
-    show_data = []
-    for i in range(num_entries):
-        st.markdown(f"### Entry {i+1}")
-        col1, col2 = st.columns(2)
+        show_data = []
+        for i in range(num_entries):
+            st.markdown(f"### Entry {i+1}")
+            col1, col2 = st.columns(2)
 
-        with col1:
-            sort_or_ship = st.selectbox(f"Sort or Ship", ["Sort", "Ship"], key=f"sort_or_ship_{i}")
-            whos_show = st.text_input(f"Who's Show", key=f"whos_show_{i}")
+            with col1:
+                sort_or_ship = st.selectbox(f"Sort or Ship", ["Sort", "Ship"], key=f"sort_or_ship_{i}")
+                whos_show = st.text_input(f"Who's Show", key=f"whos_show_{i}")
 
-        with col2:
-            show_date = st.date_input(f"Show Date", key=f"show_date_{i}")
-            break_numbers = st.text_input(f"Break Numbers Worked On", key=f"break_numbers_{i}")
+            with col2:
+                show_date = st.date_input(f"Show Date", key=f"show_date_{i}")
+                break_numbers = st.text_input(f"Break Numbers Worked On", key=f"break_numbers_{i}")
 
-        show_data.append({
-            "sort_or_ship": sort_or_ship,
-            "whos_show": whos_show,
-            "show_date": show_date,
-            "break_numbers": break_numbers  # ✅ New field added
-        })
+            show_data.append({
+                "sort_or_ship": sort_or_ship,
+                "whos_show": whos_show,
+                "show_date": show_date,
+                "break_numbers": break_numbers  # ✅ New field added
+            })
 
-    show_submit = st.button("Submit Show Data")
+        show_submit = st.button("Submit Show Data")
 
-    if show_submit:
-        for show in show_data:
-            insert_operations_data(
-                name, 
-                show["sort_or_ship"], 
-                show["whos_show"], 
-                show["show_date"], 
-                show["break_numbers"]  # ✅ Pass new value to database function
-            )
-        st.success("✅ Show Data submitted successfully!")
+        if show_submit:
+            for show in show_data:
+                insert_operations_data(
+                    name, 
+                    show["sort_or_ship"], 
+                    show["whos_show"], 
+                    show["show_date"], 
+                    show["break_numbers"]  # ✅ Pass new value to database function
+                )
+            st.success("✅ Show Data submitted successfully!")
 
 
     # === 📌 Expander 4: View Data ===
