@@ -150,20 +150,6 @@ def insert_operations_data(name, sort_or_ship, whos_break, show_date, break_numb
             )
         conn.commit()
 
-# Function to insert data into the Payday table with Total Pay
-def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
-    total_time = get_punch_clock_hours(name, date)
-
-    with get_connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks, total_pay)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
-                (name, date, time_in, time_out, total_time, num_breaks, total_pay)  # ✅ Insert Total Pay
-            )
-        conn.commit()
 
 # Function to archive and reset data
 def archive_and_reset():
