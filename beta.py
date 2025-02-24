@@ -338,9 +338,16 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         if name == "Select your name":
             st.error("❌ You must select a valid name.")
         else:
-            insert_payday_data(name, date, num_breaks)
+            # Ensure that pay data is only saved for valid users
+            week_start = date - timedelta(days=date.weekday())
+            official_hours = get_punch_clock_hours(name, week_start)
 
+            if official_hours is None:
+                st.warning(f"⚠️ No punch clock data found for {name}. Hours set to 0, but breaks are recorded.")
+            
+            insert_payday_data(name, date, num_breaks)
             st.success("✅ Data saved!")
+
 
 # === 📌 Expander 2: Track Shows ===
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
