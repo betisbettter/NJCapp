@@ -356,7 +356,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
 # === 📂 Expander: Upload Multiple Punch Clock CSVs ===
 with st.expander("📂 Upload Weekly Punch Clock Data"):
     st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>Admin View</h2>
+        <h2 style='text-align: center; font-size: 24px;'>Upload Punch Clock Data</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
