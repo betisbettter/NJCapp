@@ -409,7 +409,6 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
 
     if admin_password == "leroy":
         st.success("Access granted! Viewing all submissions.")
-        st.subheader("📊 All Submitted Data")
 
     #generate payroll report
         # Fetch available weeks from database
@@ -421,7 +420,7 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             st.warning("⚠️ No Punch Clock data available.")
             selected_week_start = None
 
-        if selected_week_start and st.button("📊 Generate Report"):
+        if selected_week_start and st.button("📊 Payroll Generate Report"):
             payroll_df = generate_weekly_payroll_report(selected_week_start)
 
             # Display the report in Streamlit
