@@ -107,16 +107,16 @@ def insert_payday_data(name, date, num_breaks):
     total_time = official_hours if official_hours is not None else 0  
 
     # Calculate total pay based on official punch clock time
-    total_pay = calculate_total_pay(name, total_time, num_breaks)
+    total_pay = calculate_total_pay(name, total_hours, num_breaks)
 
     with get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Payday (name, date, total_time, num_breaks, total_pay)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO Payday (name, date, num_breaks, total_pay)
+                VALUES (%s, %s, %s, %s)
                 """,
-                (name, date, total_time, num_breaks, total_pay)  
+                (name, date, num_breaks, total_pay)  
             )
         conn.commit()
 
