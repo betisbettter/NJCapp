@@ -108,16 +108,18 @@ def get_available_weeks():
 
     
 def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
-    """Insert data into the Payday table, calculating total pay correctly."""
+    """Insert Payday data while prioritizing Punch Clock hours if available."""
     
-    # Get official punch clock hours (if available)
-    week_start = date - timedelta(days=date.weekday())  # Calculate the Monday of that week
+    # Calculate week start date (Monday of that week)
+    week_start = date - timedelta(days=date.weekday())  
+
+    # Fetch official hours from PunchClockData
     official_hours = get_punch_clock_hours(name, week_start)
-    
+
     # Use punch clock hours if available, otherwise use manually entered time
     total_time = official_hours if official_hours is not None else total_time
 
-    # Calculate total pay based on work type (hourly/breaks)
+    # Calculate total pay
     total_pay = calculate_total_pay(name, total_time, num_breaks)
 
     with get_connection() as conn:
@@ -130,6 +132,7 @@ def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
                 (name, date, time_in, time_out, total_time, num_breaks, total_pay)  
             )
         conn.commit()
+
 
 def calculate_total_pay(name, total_time, num_breaks):
     """Calculates the total pay based on hourly or break pay structure."""
@@ -240,25 +243,49 @@ def calculate_total_pay(name, total_time, num_breaks):
     else:
         return 0  # Default case (should never happen)
 
-import pandas as pd
+
 
 def generate_weekly_payroll_report(week_start):
     """
-    Generates a weekly payroll report for all users, combining punch clock data and manual time tracking.
+    Generates a payroll report by combining punch clock data and manual time tracking.
     """
     with get_connection() as conn:
-        # Fetch hours from the PunchClockData table
+        # Fetch hours from PunchClockData table
         punch_clock_df = pd.read_sql_query(
             "SELECT name, total_hours FROM PunchClockData WHERE week_start = %s",
             conn,
             params=(week_start,)
         )
 
-        # Fetch manually entered time tracking data from the Payday table
+        # Fetch manually entered time tracking data
         payday_df = pd.read_sql_query(
             """
-            SELECT name, SU
+            SELECT name, SUM(total_time) AS total_time, SUM(num_breaks) AS total_breaks 
+            FROM Payday 
+            WHERE date BETWEEN %s AND %s 
+            GROUP BY name
+            """,
+            conn,
+            params=(week_start, week_start + timedelta(days=6))
+        )
 
+    # Merge data sources
+    payroll_df = pd.merge(payday_df, punch_clock_df, on="name", how="outer")
+
+    # If no punch clock data, use manually entered hours
+    payroll_df["total_hours"] = payroll_df["total_hours"].fillna(payroll_df["total_time"])
+    payroll_df["total_breaks"] = payroll_df["total_breaks"].fillna(0)
+
+    # Compute pay for each worker
+    payroll_df["total_pay"] = payroll_df.apply(
+        lambda row: calculate_total_pay(row["name"], row["total_hours"], row["total_breaks"]),
+        axis=1
+    )
+
+    # Select relevant columns
+    payroll_df = payroll_df[["name", "total_hours", "total_breaks", "total_pay"]]
+    
+    return payroll_df
 
 
 # === APP MAIN SECTION  ===
