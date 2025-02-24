@@ -468,13 +468,21 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
             st.success("✅ Data has been archived and reset!")
             st.rerun()
 
-        if st.button("View Archived Data"):
+        if st.button("Download Archived Data as CSV"):
             try:
-                df_operations_archive, df_payday_archive = get_archived_data()
-                st.subheader("📦 Archived Operations Table")
-                st.dataframe(df_operations_archive)
-                st.subheader("📦 Archived Payday Table")
-                st.dataframe(df_payday_archive)
+                df_operations_archive= get_archived_data()
+                # Convert Operations Archive to CSV
+                operations_csv = df_operations_archive.to_csv(index=False).encode("utf-8")
+
+                # Provide download buttons
+            st.subheader("📦 Download Archived Data")
+            st.download_button(
+                label="📥 Download Archived Operations Data",
+                data=operations_csv,
+                file_name="Archived_Operations.csv",
+                mime="text/csv"
+            )
+ 
             except Exception as e:
                 st.error(f"❌ Failed to fetch archived data: {e}")
 
