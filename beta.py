@@ -142,7 +142,7 @@ def insert_operations_data(name, sort_or_ship, whos_show, show_date, break_numbe
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO Operations (name, sort_or_ship, whos_break, show_date, Break_Numbers)
+                INSERT INTO Operations (name, sort_or_ship, whos_show, show_date, Break_Numbers)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
                 (name, sort_or_ship, whos_show, show_date, break_numbers)  # ✅ Insert Break_Numbers
