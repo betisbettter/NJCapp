@@ -428,31 +428,31 @@ with st.expander("Admin Access (Click to Expand/Collapse)", expanded=False):
         st.success("Access granted! Viewing all submissions.")
         st.subheader("📊 All Submitted Data")
 
-#generate payroll report
-    # Fetch available weeks from database
-    available_weeks = get_available_weeks()
+    #generate payroll report
+        # Fetch available weeks from database
+        available_weeks = get_available_weeks()
 
-    if available_weeks:
-        selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
-    else:
-        st.warning("⚠️ No Punch Clock data available.")
-        selected_week_start = None
+        if available_weeks:
+            selected_week_start = st.selectbox("Select Week Start Date", available_weeks, format_func=lambda x: x.strftime("%Y-%m-%d"))
+        else:
+            st.warning("⚠️ No Punch Clock data available.")
+            selected_week_start = None
 
-    if selected_week_start and st.button("📊 Generate Report"):
-        payroll_df = generate_weekly_payroll_report(selected_week_start)
+        if selected_week_start and st.button("📊 Generate Report"):
+            payroll_df = generate_weekly_payroll_report(selected_week_start)
 
-        # Display the report in Streamlit
-        st.subheader("📋 Payroll Summary")
-        st.dataframe(payroll_df)
+            # Display the report in Streamlit
+            st.subheader("📋 Payroll Summary")
+            st.dataframe(payroll_df)
 
-        # Offer CSV download
-        csv = payroll_df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Download Payroll Report as CSV",
-            data=csv,
-            file_name=f"Payroll_Report_{selected_week_start}.csv",
-            mime="text/csv"
-        )
+            # Offer CSV download
+            csv = payroll_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Download Payroll Report as CSV",
+                data=csv,
+                file_name=f"Payroll_Report_{selected_week_start}.csv",
+                mime="text/csv"
+            )
 
 
 
