@@ -404,11 +404,11 @@ with st.expander("📊 View Your Data (Click to Expand/Collapse)", expanded=Fals
 
             with st.spinner("🔄 Loading your Payroll report..."):
                 df_payday = pd.read_sql_query(
-                    "SELECT * FROM Payday WHERE name = %s",
+                    "SELECT * FROM payrollsummary WHERE name = %s",
                     get_connection(),
                     params=(logged_in_user,)
                 )
-                st.subheader("💰 Payday Log")
+                st.subheader("💰 Paydroll summary")
                 st.dataframe(df_payday)
 
         except Exception as e:
