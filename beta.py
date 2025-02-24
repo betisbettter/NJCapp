@@ -301,7 +301,7 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
 # === 📌 Expander 2: Track Shows ===
 with st.expander("🎬 Track Shows (Click to Expand/Collapse)", expanded=False):
     st.markdown("""
-        <h2 style='text-align: center; font-size: 24px;'>🎬 Track Shows</h2>
+        <h2 style='text-align: center; font-size: 24px;'>Track Shows</h2>
         <hr style='border: 1px solid gray;'>
     """, unsafe_allow_html=True)
 
