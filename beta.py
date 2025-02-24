@@ -87,6 +87,58 @@ def insert_punch_clock_data(name, total_hours, week_start):
             )
         conn.commit()
 
+def get_punch_clock_hours(name, week_start):
+    """Retrieve total hours worked from PunchClockData for a given week."""
+    with get_connection() as conn:
+        df = pd.read_sql_query(
+            "SELECT total_hours FROM PunchClockData WHERE name = %s AND week_start = %s",
+            conn,
+            params=(name, week_start)
+        )
+        if not df.empty:
+            return df.iloc[0]["total_hours"]  # Return first match
+        return None  # If no data found, return None
+    
+def insert_payday_data(name, date, time_in, time_out, total_time, num_breaks):
+    """Insert data into the Payday table, calculating total pay correctly."""
+    
+    # Get official punch clock hours (if available)
+    week_start = date - timedelta(days=date.weekday())  # Calculate the Monday of that week
+    official_hours = get_punch_clock_hours(name, week_start)
+    
+    # Use punch clock hours if available, otherwise use manually entered time
+    total_time = official_hours if official_hours is not None else total_time
+
+    # Calculate total pay based on work type (hourly/breaks)
+    total_pay = calculate_total_pay(name, total_time, num_breaks)
+
+    with get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO Payday (name, date, time_in, time_out, total_time, num_breaks, total_pay)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (name, date, time_in, time_out, total_time, num_breaks, total_pay)  
+            )
+        conn.commit()
+
+def calculate_total_pay(name, total_time, num_breaks):
+    """Calculates the total pay based on hourly or break pay structure."""
+    
+    if name not in pay_rates:
+        return 0  # Default to 0 if no pay rate is set
+
+    pay_type = pay_rates[name]["type"]
+    rate = pay_rates[name]["rate"]
+
+    if pay_type == "hourly":
+        return round((total_time or 0) * rate, 2)  # Multiply hours worked by hourly rate
+    elif pay_type == "break":
+        return round(num_breaks * rate, 2)  # Multiply breaks by break rate
+    else:
+        return 0
+
 
 
 
