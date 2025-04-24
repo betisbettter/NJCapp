@@ -91,14 +91,14 @@ with st.form("log_form", clear_on_submit=True):
         st.success("✅ Entry submitted!")
 
 # --- Display existing log ---
-st.subheader("📊 Work Log History")
-data = sheet.get_all_records()
-df = pd.DataFrame(data)
-if not df.empty:
-    st.dataframe(df)
-else:
-    st.info("No entries in the log yet.")
 
+st.subheader("📊 Work Log History")
+
+user_df = df[df["Name"] == user_name]
+if not user_df.empty:
+    st.dataframe(user_df)
+else:
+    st.info("No entries found for your name.")
 
 
 
