@@ -12,6 +12,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict,
 client = gspread.authorize(credentials)
 sheet = client.open("WORK LOG").sheet1
 
+
 # --- Page -----
 if os.path.exists("NJCimage2.png"):
     st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
@@ -19,10 +20,49 @@ else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 st.title("No Job Cards Work Log")
 
+
+def check_user_credentials(input_name, input_pass, user_data):
+    for entry in user_data:
+        if entry["Name"] == input_name:
+            stored_pass = entry["Passkey"]
+            # Simple match (not hashed)
+            return stored_pass == input_pass
+            # If using bcrypt instead:
+            # return bcrypt.checkpw(input_pass.encode(), stored_pass.encode())
+    return False
+
+# Load user credentials from Google Sheet
+user_sheet = client.open("Users").sheet1
+user_records = user_sheet.get_all_records()
+
+user_names = [row["Name"] for row in user_records]
+user_names.sort()  # Optional: sort alphabetically
+
+# Show login
+st.title("🔐 Log In")
+name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
+pass_input = st.text_input("Passkey", type="password")
+if st.button("Login"):
+    if check_user_credentials(name_input, pass_input, user_records):
+        st.session_state["logged_in"] = True
+        st.session_state["user_name"] = name_input
+        st.success(f"Welcome {name_input}!")
+    else:
+        st.error("Invalid credentials")
+        st.stop()
+
+# Stop app here if not logged in
+if "logged_in" not in st.session_state:
+    st.stop()
+
+user_name = st.session_state["user_name"]
+
+
+
 # --- Form for new entry ---
 st.subheader("Add New Shift Entry")
 with st.form("log_form", clear_on_submit=True):
-    name = st.text_input("Name")
+    name = st.text_input("Name", value=st.session_state["user_name"], disabled=True)
     work_date = st.date_input("Date", value=datetime.today())
     shift_type = st.selectbox("Sort / Ship / Pack", ["Sort", "Ship", "Pack", "Multiple"])
     num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)

@@ -3,3 +3,5 @@ pandas
 streamlit
 gspread
 oauth2client
+streamlit-authenticator
+PyYAML
