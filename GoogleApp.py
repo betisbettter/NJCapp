@@ -93,7 +93,8 @@ with st.form("log_form", clear_on_submit=True):
 # --- Display existing log ---
 
 st.subheader("📊 Work Log History")
-
+data = sheet.get_all_records()
+df = pd.DataFrame(data)
 user_df = df[df["Name"] == user_name]
 if not user_df.empty:
     st.dataframe(user_df)
