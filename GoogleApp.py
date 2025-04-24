@@ -39,7 +39,7 @@ user_names.sort()  # Optional: sort alphabetically
 
 # Show login
 with st.expander("🔐 User Authentication", expanded=True):
-    st.subheader("🔐 Log In")
+    st.subheader("Log In")
     name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
     pass_input = st.text_input("Passkey", type="password")
     if st.button("Login"):
