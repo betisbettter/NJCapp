@@ -11,7 +11,12 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict,
 client = gspread.authorize(credentials)
 sheet = client.open("WORK LOG").sheet1
 
-st.title("📋 Ten Percent Work Log")
+# --- Page -----
+if os.path.exists("NJCimage2.png"):
+    st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
+else:
+    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
+st.title("No Job Cards Work Log")
 
 # --- Form for new entry ---
 st.subheader("Add New Shift Entry")
