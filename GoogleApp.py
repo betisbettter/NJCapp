@@ -3,6 +3,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, time
 import pandas as pd
+import os
 
 # --- Google Sheets Setup ---
 credentials_dict = st.secrets["gcp_service_account"]
