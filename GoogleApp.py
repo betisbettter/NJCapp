@@ -18,7 +18,6 @@ if os.path.exists("NJCimage2.png"):
     st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
 else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
-st.title("No Job Cards Work Log")
 
 
 def check_user_credentials(input_name, input_pass, user_data):
@@ -40,7 +39,7 @@ user_names.sort()  # Optional: sort alphabetically
 
 # Show login
 with st.expander("🔐 User Authentication", expanded=True):
-    st.title("🔐 Log In")
+    st.subheader("🔐 Log In")
     name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
     pass_input = st.text_input("Passkey", type="password")
     if st.button("Login"):
