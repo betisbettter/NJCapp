@@ -1,7 +1,7 @@
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime, time
+from datetime import datetime
 import pandas as pd
 import os
 
@@ -16,31 +16,79 @@ time_sheet = client.open("WORK LOG").worksheet("Time")
 pay_sheet = client.open("WORK LOG").worksheet("Pay")
 user_sheet = client.open("Users").sheet1
 
+# --- Helper Functions ---
 
-# --- Page -----
-if os.path.exists("NJCimage2.png"):
-    st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
-else:
-    st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
-
+def parse_pay_period(pay_period_str):
+    start_str, end_str = pay_period_str.split("-")
+    start_date = datetime.strptime(start_str.strip(), "%m/%d/%Y").date()
+    end_date = datetime.strptime(end_str.strip(), "%m/%d/%Y").date()
+    return start_date, end_date
 
 def check_user_credentials(input_name, input_pass, user_data):
     for entry in user_data:
         if entry["Name"] == input_name:
             stored_pass = entry["Passkey"]
-            # Simple match (not hashed)
             return stored_pass == input_pass
-            # If using bcrypt instead:
-            # return bcrypt.checkpw(input_pass.encode(), stored_pass.encode())
     return False
 
-# Load user credentials from Google Sheet
+def refresh_earnings():
+    pay_df = pd.DataFrame(pay_sheet.get_all_records())
+    time_df = pd.DataFrame(time_sheet.get_all_records())
+    shift_df = pd.DataFrame(shift_sheet.get_all_records())
+    earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
+    
+    # Ensure date formats
+    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date
+
+    merged_df = pd.merge(time_df, pay_df, on="Name", how="left")
+
+    results = []
+
+    for _, row in merged_df.iterrows():
+        name = row["Name"]
+        pay_period = row["Pay Period"]
+        rate_type = row["Type"].lower()
+        rate = row["Rate"]
+        
+        start_date, end_date = parse_pay_period(pay_period)
+
+        if rate_type == "hourly":
+            total_time = row["Total Time"]
+            total_earned = total_time * rate
+
+        elif rate_type == "break":
+            shifts_for_period = shift_df[
+                (shift_df["Name"] == name) &
+                (shift_df["Date of Work"] >= start_date) &
+                (shift_df["Date of Work"] <= end_date)
+            ]
+            total_breaks = shifts_for_period["num Breaks"].sum()
+            total_earned = total_breaks * rate
+
+        else:
+            total_earned = 0
+
+        results.append([name, pay_period, round(total_earned, 2)])
+
+    # Write to Earnings Sheet
+    earnings_sheet.clear()
+    earnings_sheet.append_row(["Name", "Pay Period", "Total Earned"])  # Header
+    for entry in results:
+        earnings_sheet.append_row(entry)
+
+# --- Page Setup ---
+
+if os.path.exists("NJCimage2.png"):
+    st.image("NJCimage2.png", use_container_width=True)
+else:
+    st.warning("⚠️ Image not found. Please upload `NJCimage2.png`.")
+
+# --- User Authentication ---
 
 user_records = user_sheet.get_all_records()
 user_names = [row["Name"] for row in user_records]
-user_names.sort()  # Optional: sort alphabetically
+user_names.sort()
 
-# Show login
 with st.expander("🔐 User Authentication", expanded=True):
     st.subheader("Log In")
     name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
@@ -54,34 +102,41 @@ with st.expander("🔐 User Authentication", expanded=True):
             st.error("Invalid credentials")
             st.stop()
 
-    # Stop app here if not logged in
     if "logged_in" not in st.session_state:
         st.stop()
 
-    user_name = st.session_state["user_name"]
+user_name = st.session_state["user_name"]
 
+# --- Admin Controls ---
+admin_users = ["Anthony", "Greg"]
+is_admin = user_name in admin_users
 
+if is_admin:
+    with st.expander("🔧 Admin Controls", expanded=True):
+        st.subheader("Admin Panel")
+        if st.button("🔄 Refresh Earnings Calculations"):
+            refresh_earnings()
+            st.success("✅ Earnings sheet has been updated!")
 
-# --- Form for new entry ---
+# --- Form for New Shift Entry ---
+
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.subheader("Add New Shift Entry")
     with st.form("log_form", clear_on_submit=True):
-        name = st.text_input("Name", value=st.session_state["user_name"], disabled=True)
+        st.text_input("Name", value=user_name, disabled=True)
         shift_date = st.date_input("Date of Work", value=datetime.today())
-     
         shift_type = st.multiselect("Sort / Ship / Pack", ["Sort", "Ship", "Pack"])
         shift_type_str = ", ".join(shift_type)
         num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)
-        size_break = st.radio("Break Size", ["Standard", "Large"])
+        size_break = st.radio("Break Size", ["Standard", "Large"], horizontal=True)
         whos_break = st.text_input("Who's Show?")
         show_date = st.date_input("Show Date", value=datetime.today())
         notes = st.text_area("Shift Notes", height=100)
-        
         submit = st.form_submit_button("Submit Entry")
 
         if submit:
             row = [
-                st.session_state["user_name"],
+                user_name,
                 shift_date.strftime("%Y-%m-%d"),
                 shift_type_str,
                 num_breaks,
@@ -93,7 +148,8 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             shift_sheet.append_row(row)
             st.success("✅ Entry submitted!")
 
-# --- Display existing log ---
+# --- Display Existing Work Log ---
+
 with st.expander("🎬 Track Your Work (Click to Expand/Collapse)", expanded=False):
     st.subheader("📊 Work Log History")
     data = shift_sheet.get_all_records()
@@ -103,8 +159,3 @@ with st.expander("🎬 Track Your Work (Click to Expand/Collapse)", expanded=Fal
         st.dataframe(user_df)
     else:
         st.info("No entries found for your name.")
-
-
-
-
-
