@@ -10,7 +10,11 @@ credentials_dict = st.secrets["gcp_service_account"]
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(credentials)
-sheet = client.open("WORK LOG").sheet1
+
+shift_sheet = client.open("WORK LOG").Shifts
+time_sheet = client.open("WORK LOG").Time
+pay_sheet = client.open("WORK LOG").Pay
+user_sheet = client.open("Users").sheet1
 
 
 # --- Page -----
@@ -31,9 +35,8 @@ def check_user_credentials(input_name, input_pass, user_data):
     return False
 
 # Load user credentials from Google Sheet
-user_sheet = client.open("Users").sheet1
-user_records = user_sheet.get_all_records()
 
+user_records = user_sheet.get_all_records()
 user_names = [row["Name"] for row in user_records]
 user_names.sort()  # Optional: sort alphabetically
 
@@ -70,9 +73,8 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
 
         num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)
         whos_break = st.text_input("Who's Break?")
+        size_break = st.radio("Break Size", ["Standard", "Large"])
         show_date = st.date_input("Show Date", value=datetime.today())
-        time_in = st.time_input("Time In", value=time(9, 0))
-        time_out = st.time_input("Time Out", value=time(17, 0))
         notes = st.text_area("Shift Notes", height=100)
         submit = st.form_submit_button("Submit Entry")
 
@@ -82,19 +84,18 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
                 work_date.strftime("%Y-%m-%d"),
                 shift_type_str,
                 num_breaks,
+                size_break,
                 whos_break,
                 show_date.strftime("%Y-%m-%d"),
-                time_in.strftime("%H:%M"),
-                time_out.strftime("%H:%M"),
                 notes,
             ]
-            sheet.append_row(row)
+            shift_sheet.append_row(row)
             st.success("✅ Entry submitted!")
 
 # --- Display existing log ---
 with st.expander("🎬 Track Your Work (Click to Expand/Collapse)", expanded=False):
     st.subheader("📊 Work Log History")
-    data = sheet.get_all_records()
+    data = shift_sheet.get_all_records()
     df = pd.DataFrame(data)
     user_df = df[df["Name"] == user_name]
     if not user_df.empty:
