@@ -56,7 +56,7 @@ def refresh_earnings():
 
     earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
 
-    shift_df["Date"] = pd.to_datetime(shift_df["Date"]).dt.date  # <<< Make sure this matches your real column name!
+    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date  # <<< Make sure this matches your real column name!
 
     merged_df = pd.merge(time_df, pay_df, on="Name", how="left")
 
@@ -77,8 +77,8 @@ def refresh_earnings():
         elif rate_type == "break":
             shifts_for_period = shift_df[
                 (shift_df["Name"] == name) &
-                (shift_df["Date"] >= start_date) &
-                (shift_df["Date"] <= end_date)
+                (shift_df["Date of Work"] >= start_date) &
+                (shift_df["Date of Work"] <= end_date)
             ]
             total_breaks = shifts_for_period["num Breaks"].sum()
             total_earned = total_breaks * rate
