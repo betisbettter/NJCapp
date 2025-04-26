@@ -70,7 +70,6 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         work_date = st.date_input("Date of Work", value=datetime.today())
         shift_type = st.multiselect("Sort / Ship / Pack", ["Sort", "Ship", "Pack"])
         shift_type_str = ", ".join(shift_type)
-
         num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)
         whos_break = st.text_input("Who's Break?")
         size_break = st.radio("Break Size", ["Standard", "Large"])
