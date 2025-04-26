@@ -55,9 +55,8 @@ def refresh_earnings():
     shift_df = load_shift_data()
 
     earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
-    
-    # Ensure date formats
-    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date
+
+    shift_df["Date"] = pd.to_datetime(shift_df["Date"]).dt.date  # <<< Make sure this matches your real column name!
 
     merged_df = pd.merge(time_df, pay_df, on="Name", how="left")
 
@@ -78,8 +77,8 @@ def refresh_earnings():
         elif rate_type == "break":
             shifts_for_period = shift_df[
                 (shift_df["Name"] == name) &
-                (shift_df["Date of Work"] >= start_date) &
-                (shift_df["Date of Work"] <= end_date)
+                (shift_df["Date"] >= start_date) &
+                (shift_df["Date"] <= end_date)
             ]
             total_breaks = shifts_for_period["num Breaks"].sum()
             total_earned = total_breaks * rate
@@ -89,11 +88,17 @@ def refresh_earnings():
 
         results.append([name, pay_period, round(total_earned, 2)])
 
-    # Clear and Write to Earnings Sheet
-    earnings_sheet.clear()
-    earnings_sheet.append_row(["Name", "Pay Period", "Total Earned"])  # Header
-    for entry in results:
-        earnings_sheet.append_row(entry)
+    # ✅ Instead of clearing and appending one row at a time, we batch it
+    values = [["Name", "Pay Period", "Total Earned"]] + results
+    earnings_sheet.update('A1', values)
+
+    # Success Summary
+    total_users = len(results)
+    total_payroll = sum([entry[2] for entry in results])
+
+    st.success(f"✅ Successfully updated earnings for {total_users} people!")
+    st.info(f"💰 Total Payroll This Period: **${total_payroll:,.2f}**")
+
 
     # --- Success Summary ---
     total_users = len(results)
