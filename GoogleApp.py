@@ -53,6 +53,8 @@ def refresh_earnings():
     pay_df = load_pay_data()
     time_df = load_time_data()
     shift_df = load_shift_data()
+
+    earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
     
     # Ensure date formats
     shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date
@@ -66,7 +68,7 @@ def refresh_earnings():
         pay_period = row["Pay Period"]
         rate_type = row["Type"].lower()
         rate = row["Rate"]
-        
+
         start_date, end_date = parse_pay_period(pay_period)
 
         if rate_type == "hourly":
@@ -87,11 +89,19 @@ def refresh_earnings():
 
         results.append([name, pay_period, round(total_earned, 2)])
 
-    # Clear and write to Earnings Sheet
+    # Clear and Write to Earnings Sheet
     earnings_sheet.clear()
     earnings_sheet.append_row(["Name", "Pay Period", "Total Earned"])  # Header
     for entry in results:
         earnings_sheet.append_row(entry)
+
+    # --- Success Summary ---
+    total_users = len(results)
+    total_payroll = sum([entry[2] for entry in results])
+
+    st.success(f"✅ Successfully updated earnings for {total_users} people!")
+    st.info(f"💰 Total Payroll This Period: **${total_payroll:,.2f}**")
+
 
 # --- Page Setup ---
 
