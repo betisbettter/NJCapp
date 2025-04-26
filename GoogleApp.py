@@ -103,4 +103,76 @@ else:
 # --- User Authentication ---
 
 user_records = load_user_data()
-user_names = [row["Na_
+user_names = [row["Name"] for row in user_records]
+user_names.sort()
+
+with st.expander("🔐 User Authentication", expanded=True):
+    st.subheader("Log In")
+    name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
+    pass_input = st.text_input("Passkey", type="password")
+    if st.button("Login"):
+        if check_user_credentials(name_input, pass_input, user_records):
+            st.session_state["logged_in"] = True
+            st.session_state["user_name"] = name_input
+            st.success(f"Welcome {name_input}!")
+        else:
+            st.error("Invalid credentials")
+            st.stop()
+
+    if "logged_in" not in st.session_state:
+        st.stop()
+
+user_name = st.session_state["user_name"]
+
+# --- Admin Controls ---
+admin_users = ["Anthony", "Greg"]
+is_admin = user_name in admin_users
+
+if is_admin:
+    with st.expander("🔧 Admin Controls", expanded=True):
+        st.subheader("Admin Panel")
+        if st.button("🔄 Refresh Earnings Calculations"):
+            refresh_earnings()
+            st.success("✅ Earnings sheet has been updated!")
+
+# --- Form for New Shift Entry ---
+
+with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
+    st.subheader("Add New Shift Entry")
+    with st.form("log_form", clear_on_submit=True):
+        st.text_input("Name", value=user_name, disabled=True)
+        shift_date = st.date_input("Date of Work", value=datetime.today())
+        shift_type = st.multiselect("Sort / Ship / Pack", ["Sort", "Ship", "Pack"])
+        shift_type_str = ", ".join(shift_type)
+        num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)
+        size_break = st.radio("Break Size", ["Standard", "Large"], horizontal=True)
+        whos_break = st.text_input("Who's Show?")
+        show_date = st.date_input("Show Date", value=datetime.today())
+        notes = st.text_area("Shift Notes", height=100)
+        submit = st.form_submit_button("Submit Entry")
+
+        if submit:
+            row = [
+                user_name,
+                shift_date.strftime("%Y-%m-%d"),
+                shift_type_str,
+                num_breaks,
+                size_break,
+                whos_break,
+                show_date.strftime("%Y-%m-%d"),
+                notes,
+            ]
+            shift_sheet.append_row(row)
+            st.success("✅ Entry submitted!")
+
+# --- Display Existing Work Log ---
+
+with st.expander("🎬 Track Your Work (Click to Expand/Collapse)", expanded=False):
+    st.subheader("📊 Work Log History")
+    df = load_shift_data()
+    user_df = df[df["Name"] == user_name]
+    if not user_df.empty:
+        st.dataframe(user_df)
+    else:
+        st.info("No entries found for your name.")
+
