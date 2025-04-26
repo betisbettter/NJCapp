@@ -11,9 +11,9 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(credentials)
 
-shift_sheet = client.open("WORK LOG").worksheet(Shifts)
-time_sheet = client.open("WORK LOG").worksheet(Time)
-pay_sheet = client.open("WORK LOG").worksheet(Pay)
+shift_sheet = client.open("WORK LOG").worksheet("Shifts")
+time_sheet = client.open("WORK LOG").worksheet("Time")
+pay_sheet = client.open("WORK LOG").worksheet("Pay")
 user_sheet = client.open("Users").sheet1
 
 
