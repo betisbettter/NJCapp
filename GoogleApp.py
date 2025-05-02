@@ -56,7 +56,7 @@ def refresh_earnings():
 
     earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
 
-    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date  # <<< Make sure this matches your real column name!
+    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date  
 
     merged_df = pd.merge(time_df, pay_df, on="Name", how="left")
 
