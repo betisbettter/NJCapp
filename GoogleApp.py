@@ -152,42 +152,46 @@ if is_admin:
 
 # --- Form for New Shift Entry ---
 
+
+
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
-    st.subheader("Add New Shift Entry")
-    with st.form("log_form", clear_on_submit=True):
-        st.text_input("Name", value=user_name, disabled=True)
-        shift_date = st.date_input("Date of Work", value=datetime.today())
-        shift_type = st.multiselect("Sort / Ship / Pack", ["Sort", "Ship", "Pack"])
-        shift_type_str = ", ".join(shift_type)
-        num_breaks = st.number_input("Number of Breaks", min_value=0, max_value=5, step=1)
-        size_break = st.radio("Break Size", ["Standard", "Large"], horizontal=True)
-        whos_break = st.text_input("Who's Show?")
-        show_date = st.date_input("Show Date", value=datetime.today())
-        notes = st.text_area("Shift Notes", height=100)
-        submit = st.form_submit_button("Submit Entry")
+    st.subheader("Add Work Tasks")
+    
+    shift_date = st.date_input("Date of Shift (Today’s Work)", value=datetime.today(), key="main_shift_date")
+    notes = st.text_area("General Shift Notes", height=100)
 
-        if submit:
-            row = [
-                user_name,
-                shift_date.strftime("%Y-%m-%d"),
-                shift_type_str,
-                num_breaks,
-                size_break,
-                whos_break,
-                show_date.strftime("%Y-%m-%d"),
-                notes,
-            ]
-            shift_sheet.append_row(row)
-            st.success("✅ Entry submitted!")
+    work_blocks = []
+    max_blocks = 5  # You can increase this if needed
 
-# --- Display Existing Work Log ---
+    for i in range(1, max_blocks + 1):
+        with st.expander(f"🎭 Work Block {i}", expanded=(i == 1)):
+            task_types = st.multiselect("Work Type(s)", ["Sort", "Ship", "Sleeve"], key=f"type_{i}")
+            num_breaks = st.number_input("Number of Breaks", min_value=0, step=1, key=f"breaks_{i}")
+            show_name = st.text_input("Who's Show?", key=f"show_{i}")
+            show_date = st.date_input("Date of Show", value=datetime.today(), key=f"date_{i}")
 
-with st.expander("🎬 Track Your Work (Click to Expand/Collapse)", expanded=False):
-    st.subheader("📊 Work Log History")
-    df = load_shift_data()
-    user_df = df[df["Name"] == user_name]
-    if not user_df.empty:
-        st.dataframe(user_df)
-    else:
-        st.info("No entries found for your name.")
+            if task_types and show_name:
+                work_blocks.append({
+                    "Work Types": task_types,
+                    "Breaks": num_breaks,
+                    "Show": show_name,
+                    "Show Date": show_date
+                })
 
+    submit = st.button("✅ Submit All Tasks")
+
+    if submit and work_blocks:
+        for block in work_blocks:
+            for task in block["Work Types"]:
+                shift_sheet.append_row([
+                    user_name,
+                    task,  # Sort / Ship / Sleeve
+                    block["Breaks"],
+                    block["Show"],
+                    block["Show Date"].strftime("%Y-%m-%d"),
+                    shift_date.strftime("%Y-%m-%d"),  # Date of Shift Entry
+                    notes
+                ])
+        st.success("✅ All tasks successfully logged!")
+    elif submit and not work_blocks:
+        st.warning("You must enter at least one work block with a task and show.")
