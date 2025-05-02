@@ -155,7 +155,7 @@ if is_admin:
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
-with st.expander("🧱 Log Your Shift Tasks", expanded=True):
+with st.expander("Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
     general_notes = st.text_area("📝 General Shift Notes (optional)",  key="general_notes")
 
