@@ -157,7 +157,7 @@ st.subheader("💰 Get Paid - Log Your Work Tasks")
 
 with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
-    general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
+    general_notes = st.text_area("📝 General Shift Notes (optional)",  key="general_notes")
 
     col1, col2, col3 = st.columns(3)
 
@@ -167,7 +167,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
         sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
         sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
-        sort_notes = st.text_area("Notes (Sort)", height=60, key="sort_notes")
+        sort_notes = st.text_area("Notes (Sort)",  key="sort_notes")
 
     with col2:
         st.markdown("### 🔸 Pack")
