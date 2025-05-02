@@ -153,7 +153,7 @@ if is_admin:
 # --- Form for New Shift Entry ---
 
 
-with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
+with st.container("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.subheader("Add Work Tasks")
     
     shift_date = st.date_input("🗓️ Date of Shift (Today’s Work)", value=datetime.today(), key="main_shift_date")
