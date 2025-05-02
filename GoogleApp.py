@@ -151,53 +151,73 @@ if is_admin:
             st.success("✅ Earnings sheet has been updated!")
 
 # --- Form for New Shift Entry ---
-
-
-# ✅ USER SHIFT ENTRY FORM (REFORMATTED TO REMOVE EXPANDER NESTING)
+# ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
-with st.container():
+with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
-    notes = st.text_area("📝 General Shift Notes (optional)", height=100)
+    general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
 
-    work_blocks = []
-    max_blocks = 5  # You can raise this if needed
+    col1, col2, col3 = st.columns(3)
 
-    for i in range(1, max_blocks + 1):
-        # ✅ Each block is inside its own expander, but NOT inside another expander
-        with st.expander(f"🎭 Work Block {i}", expanded=(i == 1)):
-            task_types = st.multiselect("💼 Work Type(s)", ["Sort", "Ship", "Sleeve"], key=f"type_{i}")
-            num_breaks = st.number_input("🔢 Number of Breaks", min_value=0, step=1, key=f"breaks_{i}")
-            show_name = st.text_input("🎤 Who's Show?", key=f"show_{i}")
-            show_date = st.date_input("📅 Date of Show", value=datetime.today(), key=f"date_{i}")
+    with col1:
+        st.markdown("### 🔹 Sort")
+        sort_show = st.text_input("Who's Show? (Sort)", key="sort_show")
+        sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
+        sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
+        sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
+        sort_notes = st.text_area("Notes (Sort)", height=60, key="sort_notes")
 
-            if task_types and show_name:
-                work_blocks.append({
-                    "Work Types": task_types,
-                    "Breaks": num_breaks,
-                    "Show": show_name,
-                    "Show Date": show_date
-                })
+    with col2:
+        st.markdown("### 🔸 Pack")
+        pack_show = st.text_input("Who's Show? (Pack)", key="pack_show")
+        pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
+        pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
+        pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
+        pack_notes = st.text_area("Notes (Pack)", height=60, key="pack_notes")
 
-    submit = st.button("✅ Submit All Tasks")
+    with col3:
+        st.markdown("### 🟣 Sleeve")
+        sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1, key="sleeve_count")
 
-    if submit and work_blocks:
-        for block in work_blocks:
-            for task in block["Work Types"]:
-                shift_sheet.append_row([
-                    user_name,
-                    task,
-                    block["Breaks"],
-                    block["Show"],
-                    block["Show Date"].strftime("%Y-%m-%d"),
-                    shift_date.strftime("%Y-%m-%d"),
-                    notes
-                ])
+        sleeve_entries = []
+        for i in range(sleeve_count):
+            show = st.text_input(f"Who's Show? (Sleeve {i+1})", key=f"sleeve_show_{i}")
+            date = st.date_input(f"Show Date (Sleeve {i+1})", value=datetime.today(), key=f"sleeve_date_{i}")
+            if show:
+                sleeve_entries.append((show, date))
+
+    submit = st.button("✅ Submit All Logged Tasks")
+
+    if submit:
+        # Submit Sort entry
+        if sort_show:
+            shift_sheet.append_row([
+                user_name, "Sort", sort_breaks, sort_show,
+                sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                f"Large Break: {sort_large} | {sort_notes} | {general_notes}"
+            ])
+
+        # Submit Pack entry
+        if pack_show:
+            shift_sheet.append_row([
+                user_name, "Pack", pack_breaks, pack_show,
+                pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                f"Large Break: {pack_large} | {pack_notes} | {general_notes}"
+            ])
+
+        # Submit Sleeve entries
+        for show, date in sleeve_entries:
+            shift_sheet.append_row([
+                user_name, "Sleeve", 1, show,
+                date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                f"Sleeve Entry | {general_notes}"
+            ])
+
         st.success("✅ All tasks successfully logged!")
-    elif submit and not work_blocks:
-        st.warning("⚠️ Please enter at least one valid work block.")
-
+    elif submit and not (sort_show or pack_show or sleeve_entries):
+        st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
 
 
