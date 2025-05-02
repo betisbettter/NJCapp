@@ -88,11 +88,11 @@ def refresh_earnings():
 
         results.append([name, pay_period, round(total_earned, 2)])
 
-    # ✅ Instead of clearing and appending one row at a time, we batch it
+# ✅ Instead of clearing and appending one row at a time, we batch it
     values = [["Name", "Pay Period", "Total Earned"]] + results
     earnings_sheet.update('A1', values)
 
-    # Success Summary
+# Success Summary
     total_users = len(results)
     total_payroll = sum([entry[2] for entry in results])
 
@@ -100,7 +100,7 @@ def refresh_earnings():
     st.info(f"💰 Total Payroll This Period: **${total_payroll:,.2f}**")
 
 
-    # --- Success Summary ---
+# --- Success Summary ---
     total_users = len(results)
     total_payroll = sum([entry[2] for entry in results])
 
@@ -195,3 +195,48 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
         st.success("✅ All tasks successfully logged!")
     elif submit and not work_blocks:
         st.warning("You must enter at least one work block with a task and show.")
+
+
+
+# ✅ USER DASHBOARD: Shows logged shifts, total tasks, and total earnings
+
+with st.expander("📊 My Earnings Dashboard", expanded=True):
+    shift_df = load_shift_data()
+    pay_df = load_pay_data()
+
+    # Normalize headers
+    shift_df.columns = shift_df.columns.str.strip().str.title()
+    pay_df.columns = pay_df.columns.str.strip().str.title()
+
+    # Filter user data
+    user_shifts = shift_df[shift_df["Name"] == user_name].copy()
+    user_shifts["Show Date"] = pd.to_datetime(user_shifts["Show Date"]).dt.date
+    user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"]).dt.date
+
+    if user_shifts.empty:
+        st.info("No shift data found yet. Log some tasks!")
+    else:
+        # Calculate per-task earnings
+        earnings = []
+        total_pay = 0
+        for _, row in user_shifts.iterrows():
+            task = row["Task"].lower()
+            breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
+
+            match = pay_df[(pay_df["Name"] == user_name) & (pay_df["Type"].str.lower() == task)]
+            if not match.empty:
+                rate = float(match.iloc[0]["Rate"])
+                earned = rate * breaks
+                total_pay += earned
+                earnings.append(earned)
+            else:
+                earnings.append(0)
+
+        user_shifts["Earned"] = earnings
+
+        # Display summary
+        st.metric("💰 Total Earned", f"${total_pay:,.2f}")
+        st.metric("🧱 Total Tasks Logged", len(user_shifts))
+
+        # Show full log
+        st.dataframe(user_shifts.sort_values("Shift Date", ascending=False), use_container_width=True)
