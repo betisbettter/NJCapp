@@ -153,16 +153,19 @@ if is_admin:
 # --- Form for New Shift Entry ---
 
 
-with st.container("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
-    st.subheader("Add Work Tasks")
-    
-    shift_date = st.date_input("🗓️ Date of Shift (Today’s Work)", value=datetime.today(), key="main_shift_date")
+# ✅ USER SHIFT ENTRY FORM (REFORMATTED TO REMOVE EXPANDER NESTING)
+
+st.subheader("💰 Get Paid - Log Your Work Tasks")
+
+with st.container():
+    shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
     notes = st.text_area("📝 General Shift Notes (optional)", height=100)
 
     work_blocks = []
-    max_blocks = 5  # You can increase if users work many shows per day
+    max_blocks = 5  # You can raise this if needed
 
     for i in range(1, max_blocks + 1):
+        # ✅ Each block is inside its own expander, but NOT inside another expander
         with st.expander(f"🎭 Work Block {i}", expanded=(i == 1)):
             task_types = st.multiselect("💼 Work Type(s)", ["Sort", "Ship", "Sleeve"], key=f"type_{i}")
             num_breaks = st.number_input("🔢 Number of Breaks", min_value=0, step=1, key=f"breaks_{i}")
@@ -184,18 +187,16 @@ with st.container("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             for task in block["Work Types"]:
                 shift_sheet.append_row([
                     user_name,
-                    task,  # Task Type: Sort, Ship, Sleeve
+                    task,
                     block["Breaks"],
                     block["Show"],
                     block["Show Date"].strftime("%Y-%m-%d"),
-                    shift_date.strftime("%Y-%m-%d"),  # Date the shift was worked
+                    shift_date.strftime("%Y-%m-%d"),
                     notes
                 ])
         st.success("✅ All tasks successfully logged!")
     elif submit and not work_blocks:
-        st.warning("⚠️ Please enter at least one work block with task type and show info.")
-
-
+        st.warning("⚠️ Please enter at least one valid work block.")
 
 
 
