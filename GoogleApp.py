@@ -259,7 +259,7 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
 
         # Display summary
         st.metric("💰 Total Earned", f"${total_pay:,.2f}")
-        st.metric("🧱 Total Tasks Logged", len(user_shifts))
+        st.metric("Total Tasks Logged", len(user_shifts))
 
         # Show full log
         st.dataframe(user_shifts.sort_values("Shift Date", ascending=False), use_container_width=True)
