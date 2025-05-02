@@ -221,25 +221,30 @@ with st.expander("Log Your Shift Tasks", expanded=True):
 
 
 
-# ✅ USER DASHBOARD: Shows logged shifts, total tasks, and total earnings
+# ✅ USER DASHBOARD PAY PERIOD FILTER
 
 with st.expander("📊 My Earnings Dashboard", expanded=True):
     shift_df = load_shift_data()
     pay_df = load_pay_data()
 
-    # Normalize headers
     shift_df.columns = shift_df.columns.str.strip().str.title()
     pay_df.columns = pay_df.columns.str.strip().str.title()
 
-    # Filter user data
     user_shifts = shift_df[shift_df["Name"] == user_name].copy()
     user_shifts["Show Date"] = pd.to_datetime(user_shifts["Show Date"]).dt.date
     user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"]).dt.date
 
+    # Pay Period Filter
+    pay_periods = sorted(set(row["Pay Period"] for row in load_time_data() if row["Name"] == user_name))
+    selected_period = st.selectbox("📅 Filter by Pay Period:", options=["All"] + pay_periods)
+
+    if selected_period != "All":
+        start_date, end_date = parse_pay_period(selected_period)
+        user_shifts = user_shifts[(user_shifts["Shift Date"] >= start_date) & (user_shifts["Shift Date"] <= end_date)]
+
     if user_shifts.empty:
         st.info("No shift data found yet. Log some tasks!")
     else:
-        # Calculate per-task earnings
         earnings = []
         total_pay = 0
         for _, row in user_shifts.iterrows():
@@ -257,9 +262,7 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
 
         user_shifts["Earned"] = earnings
 
-        # Display summary
         st.metric("💰 Total Earned", f"${total_pay:,.2f}")
         st.metric("Total Tasks Logged", len(user_shifts))
 
-        # Show full log
         st.dataframe(user_shifts.sort_values("Shift Date", ascending=False), use_container_width=True)
