@@ -153,22 +153,21 @@ if is_admin:
 # --- Form for New Shift Entry ---
 
 
-
 with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
     st.subheader("Add Work Tasks")
     
-    shift_date = st.date_input("Date of Shift (Today’s Work)", value=datetime.today(), key="main_shift_date")
-    notes = st.text_area("General Shift Notes", height=100)
+    shift_date = st.date_input("🗓️ Date of Shift (Today’s Work)", value=datetime.today(), key="main_shift_date")
+    notes = st.text_area("📝 General Shift Notes (optional)", height=100)
 
     work_blocks = []
-    max_blocks = 5  # You can increase this if needed
+    max_blocks = 5  # You can increase if users work many shows per day
 
     for i in range(1, max_blocks + 1):
         with st.expander(f"🎭 Work Block {i}", expanded=(i == 1)):
-            task_types = st.multiselect("Work Type(s)", ["Sort", "Ship", "Sleeve"], key=f"type_{i}")
-            num_breaks = st.number_input("Number of Breaks", min_value=0, step=1, key=f"breaks_{i}")
-            show_name = st.text_input("Who's Show?", key=f"show_{i}")
-            show_date = st.date_input("Date of Show", value=datetime.today(), key=f"date_{i}")
+            task_types = st.multiselect("💼 Work Type(s)", ["Sort", "Ship", "Sleeve"], key=f"type_{i}")
+            num_breaks = st.number_input("🔢 Number of Breaks", min_value=0, step=1, key=f"breaks_{i}")
+            show_name = st.text_input("🎤 Who's Show?", key=f"show_{i}")
+            show_date = st.date_input("📅 Date of Show", value=datetime.today(), key=f"date_{i}")
 
             if task_types and show_name:
                 work_blocks.append({
@@ -185,16 +184,19 @@ with st.expander("💰 Get Paid (Click to Expand/Collapse)", expanded=False):
             for task in block["Work Types"]:
                 shift_sheet.append_row([
                     user_name,
-                    task,  # Sort / Ship / Sleeve
+                    task,  # Task Type: Sort, Ship, Sleeve
                     block["Breaks"],
                     block["Show"],
                     block["Show Date"].strftime("%Y-%m-%d"),
-                    shift_date.strftime("%Y-%m-%d"),  # Date of Shift Entry
+                    shift_date.strftime("%Y-%m-%d"),  # Date the shift was worked
                     notes
                 ])
         st.success("✅ All tasks successfully logged!")
     elif submit and not work_blocks:
-        st.warning("You must enter at least one work block with a task and show.")
+        st.warning("⚠️ Please enter at least one work block with task type and show info.")
+
+
+
 
 
 
