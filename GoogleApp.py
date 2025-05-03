@@ -164,7 +164,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("###Sort")
+        st.markdown("### Sort")
         sort_show = st.text_input("Who's Show? (Sort)", key="sort_show")
         sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
         sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
@@ -179,7 +179,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             ])
 
     with col2:
-        st.markdown("###Pack")
+        st.markdown("### Pack")
         pack_show = st.text_input("Who's Show? (Pack)", key="pack_show")
         pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
         pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
@@ -194,7 +194,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             ])
 
     with col3:
-        st.markdown("###Sleeve")
+        st.markdown("### Sleeve")
         sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1, key="sleeve_count")
 
         for i in range(sleeve_count):
