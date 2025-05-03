@@ -227,7 +227,7 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
     shift_df = load_shift_data()
     pay_df = load_pay_data()
 
-    shift_df.columns = shift_df.columns.str.strip().str.title()
+    shift_df.columns = [str(col).strip().title() for col in shift_df.columns]
     pay_df.columns = pay_df.columns.str.strip().str.title()
 
     user_shifts = shift_df[shift_df["Name"] == user_name].copy()
