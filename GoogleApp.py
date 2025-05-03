@@ -169,7 +169,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
         sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
         sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
-        sort_notes = st.text_area("Notes (Sort)", key="sort_notes")
+        sort_notes = st.text_area("Notes (Sort)", height=60, key="sort_notes")
 
         if sort_show and sort_breaks > 0:
             task_entries.append([
@@ -184,7 +184,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
         pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
         pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
-        pack_notes = st.text_area("Notes (Pack)", key="pack_notes")
+        pack_notes = st.text_area("Notes (Pack)", height=60, key="pack_notes")
 
         if pack_show and pack_breaks > 0:
             task_entries.append([
@@ -230,8 +230,12 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
     user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
 
     # Pay Period Filter
-    pay_periods = sorted(set(row["Pay Period"] for row in load_time_data() if row["Name"] == user_name))
-    selected_period = st.selectbox("📅 Filter by Pay Period:", options=["All"] + pay_periods)
+    pay_periods = sorted(set(
+        row["Pay Period"]
+        for _, row in load_time_data().iterrows()
+        if row["Name"] == user_name
+    ))
+    selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
 
     if selected_period != "All":
         start_date, end_date = parse_pay_period(selected_period)
