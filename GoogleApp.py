@@ -150,26 +150,40 @@ if is_admin:
             refresh_earnings()
             st.success("✅ Earnings sheet has been updated!")
 
-# --- Form for New Shift Entry ---
+
 # ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
+
+# --- Optimized Data Load ---
+if "shift_df" not in st.session_state:
+    st.session_state["shift_df"] = pd.DataFrame(shift_sheet.get_all_records())
+
+if "pay_df" not in st.session_state:
+    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
+
+if "time_df" not in st.session_state:
+    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
+
+shift_df = st.session_state["shift_df"]
+pay_df = st.session_state["pay_df"]
+time_df = st.session_state["time_df"]
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
 with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
-    general_notes = st.text_area("📝 General Shift Notes (optional)",  key="general_notes")
+    general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
 
     task_entries = []
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("### Sort")
+        st.markdown("### 🔹 Sort")
         sort_show = st.text_input("Who's Show? (Sort)", key="sort_show")
         sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
         sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
         sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
-        sort_notes = st.text_area("Notes (Sort)",  key="sort_notes")
+        sort_notes = st.text_area("Notes (Sort)", height=60, key="sort_notes")
 
         if sort_show and sort_breaks > 0:
             task_entries.append([
@@ -179,12 +193,12 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             ])
 
     with col2:
-        st.markdown("### Pack")
+        st.markdown("### 🔸 Pack")
         pack_show = st.text_input("Who's Show? (Pack)", key="pack_show")
         pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
         pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
         pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
-        pack_notes = st.text_area("Notes (Pack)",  key="pack_notes")
+        pack_notes = st.text_area("Notes (Pack)", height=60, key="pack_notes")
 
         if pack_show and pack_breaks > 0:
             task_entries.append([
@@ -194,7 +208,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             ])
 
     with col3:
-        st.markdown("### Sleeve")
+        st.markdown("### 🟣 Sleeve")
         sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1, key="sleeve_count")
 
         for i in range(sleeve_count):
@@ -219,9 +233,6 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
 # ✅ USER DASHBOARD PAY PERIOD FILTER
 
 with st.expander("📊 My Earnings Dashboard", expanded=True):
-    shift_df = load_shift_data()
-    pay_df = load_pay_data()
-
     shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
     pay_df.columns = pay_df.columns.astype(str).str.strip().str.title()
 
@@ -232,7 +243,7 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
     # Pay Period Filter
     pay_periods = sorted(set(
         row["Pay Period"]
-        for _, row in load_time_data().iterrows()
+        for _, row in time_df.iterrows()
         if row["Name"] == user_name
     ))
     selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
