@@ -241,16 +241,24 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
     user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
 
     # Pay Period Filter
-    pay_periods = sorted(set(
-        row["Pay Period"]
-        for _, row in time_df.iterrows()
-        if row["Name"] == user_name
-    ))
+    pay_periods = sorted(
+        set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
+        key=lambda x: parse_pay_period(x)[0], reverse=True
+    )
     selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
 
+    # Map shifts to pay period
+    def get_shift_pay_period(date):
+        for period in pay_periods:
+            start, end = parse_pay_period(period)
+            if start <= date <= end:
+                return period
+        return "Unmatched"
+
+    user_shifts["Pay Period"] = user_shifts["Shift Date"].apply(get_shift_pay_period)
+
     if selected_period != "All":
-        start_date, end_date = parse_pay_period(selected_period)
-        user_shifts = user_shifts[(user_shifts["Shift Date"] >= start_date) & (user_shifts["Shift Date"] <= end_date)]
+        user_shifts = user_shifts[user_shifts["Pay Period"] == selected_period]
 
     if user_shifts.empty:
         st.info("No shift data found yet. Log some tasks!")
@@ -275,4 +283,4 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
         st.metric("💰 Total Earned", f"${total_pay:,.2f}")
         st.metric("Total Tasks Logged", len(user_shifts))
 
-        st.dataframe(user_shifts.sort_values("Shift Date", ascending=False), use_container_width=True)
+        st.dataframe(user_shifts.sort_values(["Pay Period", "Shift Date"], ascending=[False, False]), use_container_width=True)
