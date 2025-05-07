@@ -233,6 +233,8 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
+# ✅ USER DASHBOARD PAY PERIOD FILTER
+
 with st.expander("📊 My Earnings Dashboard", expanded=True):
     shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
     pay_df.columns = pay_df.columns.astype(str).str.strip().str.title()
