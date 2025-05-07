@@ -118,20 +118,26 @@ def get_db_connection():
         sslmode="require"
     )
 
-# --- Optimized Data Load ---
-if "pay_df" not in st.session_state:
-    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
-
-if "time_df" not in st.session_state:
-    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
-
-if "earnings_df" not in st.session_state:
-    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+# --- Optimized Data Load (Admin only, not for users) ---
+if st.session_state.get("is_admin"):
+    if "pay_df" not in st.session_state:
+        st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
+    if "time_df" not in st.session_state:
+        st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
+    if "earnings_df" not in st.session_state:
+        st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+else:
+    if "pay_df" not in st.session_state:
+        st.session_state["pay_df"] = pd.DataFrame()
+    if "time_df" not in st.session_state:
+        st.session_state["time_df"] = pd.DataFrame()
+    if "earnings_df" not in st.session_state:
+        st.session_state["earnings_df"] = pd.DataFrame()
 
 # Cache login info and user-specific pay data
 if "user_name" in st.session_state:
     user_name = st.session_state["user_name"]
-    if "user_pay_data" not in st.session_state:
+    if "user_pay_data" not in st.session_state and not st.session_state["pay_df"].empty:
         user_pay_data = st.session_state["pay_df"]
         st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
 else:
