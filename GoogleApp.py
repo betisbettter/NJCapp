@@ -1,11 +1,14 @@
+# ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
+
+import psycopg2
+from psycopg2.extras import execute_values
+import json
+from datetime import datetime
+import pandas as pd
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
-import pandas as pd
 import os
-import psycopg2
-from psycopg2.extras import execute_values
 
 # --- Clear old cache (optional during development) ---
 st.cache_data.clear()
@@ -16,101 +19,12 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(credentials)
 
-shift_sheet = client.open("WORK LOG").worksheet("Shifts")
-time_sheet = client.open("WORK LOG").worksheet("Time")
-pay_sheet = client.open("WORK LOG").worksheet("Pay")
+# Only load Users sheet at startup
 user_sheet = client.open("Users").sheet1
-earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
+if "user_df" not in st.session_state:
+    st.session_state["user_df"] = pd.DataFrame(user_sheet.get_all_records())
 
 # --- Neon DB Connection ---
-def get_db_connection():
-    return psycopg2.connect(
-        host=st.secrets["neon"]["host"],
-        dbname=st.secrets["neon"]["dbname"],
-        user=st.secrets["neon"]["user"],
-        password=st.secrets["neon"]["password"],
-        sslmode="require"
-    )
-
-# --- Load Cached Data ---
-@st.cache_data(ttl=60)
-def load_shift_data():
-    return pd.DataFrame(shift_sheet.get_all_records())
-
-@st.cache_data(ttl=60)
-def load_time_data():
-    return pd.DataFrame(time_sheet.get_all_records())
-
-@st.cache_data(ttl=60)
-def load_pay_data():
-    return pd.DataFrame(pay_sheet.get_all_records())
-
-@st.cache_data(ttl=300)
-def load_user_data():
-    return user_sheet.get_all_records()
-
-# --- Helpers ---
-def parse_pay_period(pay_period_str):
-    start_str, end_str = pay_period_str.split("-")
-    start_date = datetime.strptime(start_str.strip(), "%m/%d/%Y").date()
-    end_date = datetime.strptime(end_str.strip(), "%m/%d/%Y").date()
-    return start_date, end_date
-
-def check_user_credentials(input_name, input_pass, user_data):
-    for entry in user_data:
-        if entry["Name"] == input_name:
-            return entry["Passkey"] == input_pass
-    return False
-
-# --- Page Setup ---
-if os.path.exists("NJCimage2.png"):
-    st.image("NJCimage2.png", use_container_width=True)
-
-user_records = load_user_data()
-user_names = sorted([row["Name"] for row in user_records])
-
-with st.expander("🔐 User Authentication", expanded=True):
-    st.subheader("Log In")
-    name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
-    pass_input = st.text_input("Passkey", type="password")
-    if st.button("Login"):
-        if check_user_credentials(name_input, pass_input, user_records):
-            st.session_state["logged_in"] = True
-            st.session_state["user_name"] = name_input
-            st.success(f"Welcome {name_input}!")
-        else:
-            st.error("Invalid credentials")
-            st.stop()
-
-    if "logged_in" not in st.session_state:
-        st.stop()
-
-user_name = st.session_state["user_name"]
-
-# --- Load Cached Data (per session) ---
-if "pay_df" not in st.session_state:
-    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
-if "time_df" not in st.session_state:
-    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
-if "earnings_df" not in st.session_state:
-    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
-if "user_pay_data" not in st.session_state:
-    user_pay_data = st.session_state["pay_df"]
-    st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
-
-pay_df = st.session_state["pay_df"]
-time_df = st.session_state["time_df"]
-user_pay_df = st.session_state["user_pay_data"]
-
-# ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
-
-import psycopg2
-from psycopg2.extras import execute_values
-import json
-from datetime import datetime
-import pandas as pd
-
-# --- Database Connection for Neon ---
 def get_db_connection():
     return psycopg2.connect(
         host=st.secrets["neon"]["host"],
@@ -124,33 +38,52 @@ def get_db_connection():
 @st.cache_data(ttl=1, show_spinner=False)
 def append_shift_rows(rows):
     try:
-        shift_sheet.append_rows(rows)
+        shift_ws = client.open("WORK LOG").worksheet("Shifts")
+        shift_ws.append_rows(rows)
     except Exception as e:
         st.error("⚠️ Failed to log to Google Sheets. Try again in a few seconds.")
         st.stop()
 
-# --- Load only the Users sheet (initial load optimization) ---
-if "user_df" not in st.session_state:
-    st.session_state["user_df"] = pd.DataFrame(user_sheet.get_all_records())
-
-# --- Track API reads (optional debugging aid) ---
-if "api_calls" not in st.session_state:
-    st.session_state["api_calls"] = 1  # only the users sheet counted here
-
-# --- Load Admin-only Sheets on Demand ---
+# --- Admin-only Sheets Load (on demand) ---
 def load_admin_data():
-    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
-    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
-    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
-    st.session_state["api_calls"] += 3
+    try:
+        st.session_state["pay_df"] = pd.DataFrame(client.open("WORK LOG").worksheet("Pay").get_all_records())
+        st.session_state["time_df"] = pd.DataFrame(client.open("WORK LOG").worksheet("Time").get_all_records())
+        st.session_state["earnings_df"] = pd.DataFrame(client.open("WORK LOG").worksheet("Earnings").get_all_records())
+    except Exception as e:
+        st.error("🛑 Could not load one or more admin sheets. Check sheet names or permissions.")
+        st.stop()
 
-# --- Set User Name & Admin Status ---
-if "user_name" in st.session_state:
-    user_name = st.session_state["user_name"]
-    if st.session_state.get("is_admin") and "pay_df" not in st.session_state:
-        load_admin_data()
-else:
-    user_name = ""
+# --- Set Login and Admin State ---
+def check_user_credentials(input_name, input_pass):
+    df = st.session_state["user_df"]
+    match = df[(df["Name"] == input_name) & (df["Passkey"] == input_pass)]
+    return not match.empty
+
+user_names = st.session_state["user_df"]["Name"].tolist()
+user_names.sort()
+
+with st.expander("🔐 User Authentication", expanded=True):
+    name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
+    pass_input = st.text_input("Passkey", type="password")
+    if st.button("Login"):
+        if check_user_credentials(name_input, pass_input):
+            st.session_state["logged_in"] = True
+            st.session_state["user_name"] = name_input
+            st.session_state["is_admin"] = name_input in ["Anthony", "Greg"]
+            st.success(f"Welcome {name_input}!")
+        else:
+            st.error("Invalid credentials")
+            st.stop()
+
+    if "logged_in" not in st.session_state:
+        st.stop()
+
+user_name = st.session_state["user_name"]
+
+# --- Load Admin Data if Admin ---
+if st.session_state.get("is_admin") and "pay_df" not in st.session_state:
+    load_admin_data()
 
 pay_df = st.session_state.get("pay_df", pd.DataFrame())
 time_df = st.session_state.get("time_df", pd.DataFrame())
@@ -229,3 +162,4 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             st.success("✅ All tasks successfully logged!")
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
+
