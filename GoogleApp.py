@@ -173,7 +173,15 @@ def fetch_shifts_from_db(user_name):
 
 if st.button("📥 Load My Shifts"):
     shift_df = fetch_shifts_from_db(user_name)
-    shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
+    shift_df.rename(columns={
+    "name": "Name",
+    "task": "Task",
+    "breaks": "Breaks",
+    "show_name": "Show Name",
+    "show_date": "Show Date",
+    "shift_date": "Shift Date",
+    "notes": "Notes"
+}, inplace=True)
 
     shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
     shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
