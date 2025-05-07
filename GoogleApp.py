@@ -154,57 +154,64 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         else:
             st.warning("⚠️ Please enter at least one task.")
 
-# --- Dashboard ---
+# ✅ USER DASHBOARD PAY PERIOD FILTER (Read from Neon DB)
+
 @st.cache_data(ttl=120)
 def fetch_shifts_from_db(user_name):
     with get_db_connection() as conn:
         return pd.read_sql("SELECT * FROM shifts WHERE name = %s", conn, params=(user_name,))
 
 with st.expander("📊 My Earnings Dashboard", expanded=True):
-    shift_df = fetch_shifts_from_db(user_name)
-    shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
-    shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
-    shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
+    if st.button("🔄 Load My Shifts"):
+        shift_df = fetch_shifts_from_db(user_name)
+        shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
 
-    pay_periods = sorted(set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name), key=lambda x: parse_pay_period(x)[0], reverse=True)
-    selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
+        shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
+        shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
 
-    def get_shift_pay_period(date):
-        for period in pay_periods:
-            start, end = parse_pay_period(period)
-            if start <= date <= end:
-                return period
-        return "Unmatched"
-
-    shift_df["Pay Period"] = shift_df["Shift Date"].apply(get_shift_pay_period)
-
-    if selected_period != "All":
-        shift_df = shift_df[shift_df["Pay Period"] == selected_period]
-
-    if shift_df.empty:
-        st.info("No shift data found yet. Log some tasks!")
-    else:
-        earnings = []
-        total_pay = 0
-        for _, row in shift_df.iterrows():
-            task = row["Task"].lower()
-            breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
-            match = user_pay_df[user_pay_df["Type"].str.lower() == task]
-            if not match.empty:
-                rate = float(match.iloc[0]["Rate"])
-                earned = rate * breaks
-                total_pay += earned
-                earnings.append(earned)
-            else:
-                earnings.append(0)
-
-        shift_df["Earned"] = earnings
-
-        st.metric("💰 Total Earned", f"${total_pay:,.2f}")
-        st.metric("Total Tasks Logged", len(shift_df))
-
-        st.dataframe(
-            shift_df[["Pay Period", "Shift Date", "Task", "Show Name", "Show Date", "Breaks", "Earned", "Notes"]]
-            .sort_values(["Pay Period", "Shift Date"], ascending=[False, False]),
-            use_container_width=True
+        pay_periods = sorted(
+            set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
+            key=lambda x: parse_pay_period(x)[0], reverse=True
         )
+        selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
+
+        def get_shift_pay_period(date):
+            for period in pay_periods:
+                start, end = parse_pay_period(period)
+                if start <= date <= end:
+                    return period
+            return "Unmatched"
+
+        shift_df["Pay Period"] = shift_df["Shift Date"].apply(get_shift_pay_period)
+
+        if selected_period != "All":
+            shift_df = shift_df[shift_df["Pay Period"] == selected_period]
+
+        if shift_df.empty:
+            st.info("No shift data found yet. Log some tasks!")
+        else:
+            earnings = []
+            total_pay = 0
+            for _, row in shift_df.iterrows():
+                task = row["Task"].lower()
+                breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
+
+                match = user_pay_df[user_pay_df["Type"].str.lower() == task]
+                if not match.empty:
+                    rate = float(match.iloc[0]["Rate"])
+                    earned = rate * breaks
+                    total_pay += earned
+                    earnings.append(earned)
+                else:
+                    earnings.append(0)
+
+            shift_df["Earned"] = earnings
+
+            st.metric("💰 Total Earned", f"${total_pay:,.2f}")
+            st.metric("Total Tasks Logged", len(shift_df))
+
+            st.dataframe(
+                shift_df[["Pay Period", "Shift Date", "Task", "Show Name", "Show Date", "Breaks", "Earned", "Notes"]]
+                .sort_values(["Pay Period", "Shift Date"], ascending=[False, False]),
+                use_container_width=True
+            )
