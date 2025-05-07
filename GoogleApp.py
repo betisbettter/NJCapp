@@ -129,43 +129,33 @@ def append_shift_rows(rows):
         st.error("⚠️ Failed to log to Google Sheets. Try again in a few seconds.")
         st.stop()
 
+# --- Load only the Users sheet (initial load optimization) ---
+if "user_df" not in st.session_state:
+    st.session_state["user_df"] = pd.DataFrame(user_sheet.get_all_records())
+
 # --- Track API reads (optional debugging aid) ---
 if "api_calls" not in st.session_state:
-    st.session_state["api_calls"] = 0
+    st.session_state["api_calls"] = 1  # only the users sheet counted here
 
-def counted_get_all_records(sheet):
-    st.session_state["api_calls"] += 1
-    return sheet.get_all_records()
+# --- Load Admin-only Sheets on Demand ---
+def load_admin_data():
+    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
+    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
+    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+    st.session_state["api_calls"] += 3
 
-# --- Optimized Data Load (Admin only, not for users) ---
-if st.session_state.get("is_admin"):
-    if "pay_df" not in st.session_state:
-        st.session_state["pay_df"] = pd.DataFrame(counted_get_all_records(pay_sheet))
-    if "time_df" not in st.session_state:
-        st.session_state["time_df"] = pd.DataFrame(counted_get_all_records(time_sheet))
-    if "earnings_df" not in st.session_state:
-        st.session_state["earnings_df"] = pd.DataFrame(counted_get_all_records(earnings_sheet))
-else:
-    if "pay_df" not in st.session_state:
-        st.session_state["pay_df"] = pd.DataFrame()
-    if "time_df" not in st.session_state:
-        st.session_state["time_df"] = pd.DataFrame()
-    if "earnings_df" not in st.session_state:
-        st.session_state["earnings_df"] = pd.DataFrame()
-
-# Cache login info and user-specific pay data
+# --- Set User Name & Admin Status ---
 if "user_name" in st.session_state:
     user_name = st.session_state["user_name"]
-    if "user_pay_data" not in st.session_state and not st.session_state["pay_df"].empty:
-        user_pay_data = st.session_state["pay_df"]
-        st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
+    if st.session_state.get("is_admin") and "pay_df" not in st.session_state:
+        load_admin_data()
 else:
     user_name = ""
 
-pay_df = st.session_state["pay_df"]
-time_df = st.session_state["time_df"]
-earnings_df = st.session_state["earnings_df"]
-user_pay_df = st.session_state.get("user_pay_data", pd.DataFrame())
+pay_df = st.session_state.get("pay_df", pd.DataFrame())
+time_df = st.session_state.get("time_df", pd.DataFrame())
+earnings_df = st.session_state.get("earnings_df", pd.DataFrame())
+user_pay_df = pay_df[pay_df["Name"] == user_name] if not pay_df.empty else pd.DataFrame()
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
@@ -239,67 +229,3 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
             st.success("✅ All tasks successfully logged!")
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
-
-# ✅ USER DASHBOARD PAY PERIOD FILTER (Read from Neon DB)
-
-@st.cache_data(ttl=120)
-def fetch_shifts_from_db(user_name):
-    with get_db_connection() as conn:
-        return pd.read_sql("SELECT * FROM shifts WHERE name = %s", conn, params=(user_name,))
-
-with st.expander("📊 My Earnings Dashboard", expanded=True):
-    if st.button("🔄 Load My Shifts"):
-        shift_df = fetch_shifts_from_db(user_name)
-        shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
-
-        shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
-        shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
-
-        pay_periods = sorted(
-            set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
-            key=lambda x: parse_pay_period(x)[0], reverse=True
-        )
-        selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
-
-        def get_shift_pay_period(date):
-            for period in pay_periods:
-                start, end = parse_pay_period(period)
-                if start <= date <= end:
-                    return period
-            return "Unmatched"
-
-        shift_df["Pay Period"] = shift_df["Shift Date"].apply(get_shift_pay_period)
-
-        if selected_period != "All":
-            shift_df = shift_df[shift_df["Pay Period"] == selected_period]
-
-        if shift_df.empty:
-            st.info("No shift data found yet. Log some tasks!")
-        else:
-            earnings = []
-            total_pay = 0
-            for _, row in shift_df.iterrows():
-                task = row["Task"].lower()
-                breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
-
-                match = user_pay_df[user_pay_df["Type"].str.lower() == task]
-                if not match.empty:
-                    rate = float(match.iloc[0]["Rate"])
-                    earned = rate * breaks
-                    total_pay += earned
-                    earnings.append(earned)
-                else:
-                    earnings.append(0)
-
-            shift_df["Earned"] = earnings
-
-            st.metric("💰 Total Earned", f"${total_pay:,.2f}")
-            st.metric("Total Tasks Logged", len(shift_df))
-
-            st.dataframe(
-                shift_df[["Pay Period", "Shift Date", "Task", "Show Name", "Show Date", "Breaks", "Earned", "Notes"]]
-                .sort_values(["Pay Period", "Shift Date"], ascending=[False, False]),
-                use_container_width=True
-            )
-
-    st.caption(f"📊 API Read Calls This Session: {st.session_state['api_calls']}")
