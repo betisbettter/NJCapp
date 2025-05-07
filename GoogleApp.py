@@ -107,6 +107,8 @@ user_pay_df = st.session_state["user_pay_data"]
 import psycopg2
 from psycopg2.extras import execute_values
 import json
+from datetime import datetime
+import pandas as pd
 
 # --- Database Connection for Neon ---
 def get_db_connection():
@@ -118,14 +120,31 @@ def get_db_connection():
         sslmode="require"
     )
 
+# --- Helper for Google Sheet appending with retry protection ---
+@st.cache_data(ttl=1, show_spinner=False)
+def append_shift_rows(rows):
+    try:
+        shift_sheet.append_rows(rows)
+    except Exception as e:
+        st.error("⚠️ Failed to log to Google Sheets. Try again in a few seconds.")
+        st.stop()
+
+# --- Track API reads (optional debugging aid) ---
+if "api_calls" not in st.session_state:
+    st.session_state["api_calls"] = 0
+
+def counted_get_all_records(sheet):
+    st.session_state["api_calls"] += 1
+    return sheet.get_all_records()
+
 # --- Optimized Data Load (Admin only, not for users) ---
 if st.session_state.get("is_admin"):
     if "pay_df" not in st.session_state:
-        st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
+        st.session_state["pay_df"] = pd.DataFrame(counted_get_all_records(pay_sheet))
     if "time_df" not in st.session_state:
-        st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
+        st.session_state["time_df"] = pd.DataFrame(counted_get_all_records(time_sheet))
     if "earnings_df" not in st.session_state:
-        st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+        st.session_state["earnings_df"] = pd.DataFrame(counted_get_all_records(earnings_sheet))
 else:
     if "pay_df" not in st.session_state:
         st.session_state["pay_df"] = pd.DataFrame()
@@ -206,9 +225,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
 
     if submit:
         if task_entries:
-            # Save to Google Sheets
-            shift_sheet.append_rows(task_entries)
-            # Save to Neon DB
+            append_shift_rows(task_entries)
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
                     execute_values(
@@ -284,3 +301,5 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
                 .sort_values(["Pay Period", "Shift Date"], ascending=[False, False]),
                 use_container_width=True
             )
+
+    st.caption(f"📊 API Read Calls This Session: {st.session_state['api_calls']}")
