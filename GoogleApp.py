@@ -198,7 +198,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
         pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
         pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
-        pack_notes = st.text_area("Notes (Pack)", , key="pack_notes")
+        pack_notes = st.text_area("Notes (Pack)", key="pack_notes")
 
         if pack_show and pack_breaks > 0:
             task_entries.append([
