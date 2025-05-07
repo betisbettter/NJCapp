@@ -5,6 +5,9 @@ from datetime import datetime
 import pandas as pd
 import os
 
+st.cache_data.clear()
+
+
 # --- Google Sheets Setup ---
 credentials_dict = st.secrets["gcp_service_account"]
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
