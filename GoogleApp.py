@@ -4,6 +4,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import pandas as pd
 import os
+import psycopg2
+from psycopg2.extras import execute_values
+
 
 st.cache_data.clear()
 
@@ -20,6 +23,17 @@ time_sheet = client.open("WORK LOG").worksheet("Time")
 pay_sheet = client.open("WORK LOG").worksheet("Pay")
 user_sheet = client.open("Users").sheet1
 earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
+
+# --- Database Connection for Neon ---
+def get_db_connection():
+    return psycopg2.connect(
+        host=st.secrets["neon"]["host"],
+        dbname=st.secrets["neon"]["dbname"],
+        user=st.secrets["neon"]["user"],
+        password=st.secrets["neon"]["password"],
+        sslmode="require"
+    )
+
 
 # --- Caching Functions ---
 @st.cache_data(ttl=60)
@@ -157,18 +171,28 @@ if is_admin:
 # ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
 
 # --- Optimized Data Load ---
-if "shift_df" not in st.session_state:
-    st.session_state["shift_df"] = pd.DataFrame(shift_sheet.get_all_records())
-
 if "pay_df" not in st.session_state:
     st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
 
 if "time_df" not in st.session_state:
     st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
 
-shift_df = st.session_state["shift_df"]
+if "earnings_df" not in st.session_state:
+    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+
+# Cache login info and user-specific pay data
+if "user_name" in st.session_state:
+    user_name = st.session_state["user_name"]
+    if "user_pay_data" not in st.session_state:
+        user_pay_data = st.session_state["pay_df"]
+        st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
+else:
+    user_name = ""
+
 pay_df = st.session_state["pay_df"]
 time_df = st.session_state["time_df"]
+earnings_df = st.session_state["earnings_df"]
+user_pay_df = st.session_state.get("user_pay_data", pd.DataFrame())
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
@@ -201,7 +225,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
         pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
         pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
-        pack_notes = st.text_area("Notes (Pack)", key="pack_notes")
+        pack_notes = st.text_area("Notes (Pack)",  key="pack_notes")
 
         if pack_show and pack_breaks > 0:
             task_entries.append([
@@ -228,20 +252,36 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
 
     if submit:
         if task_entries:
+            # Save to Google Sheets
             shift_sheet.append_rows(task_entries)
+            # Save to Neon DB
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO shifts (name, task, breaks, show_name, show_date, shift_date, notes)
+                        VALUES %s
+                        """,
+                        task_entries
+                    )
             st.success("✅ All tasks successfully logged!")
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
-# ✅ USER DASHBOARD PAY PERIOD FILTER
+# ✅ USER DASHBOARD PAY PERIOD FILTER (Read from Neon DB)
+
+@st.cache_data(ttl=120)
+def fetch_shifts_from_db(user_name):
+    with get_db_connection() as conn:
+        return pd.read_sql("SELECT * FROM shifts WHERE name = %s", conn, params=(user_name,))
 
 with st.expander("📊 My Earnings Dashboard", expanded=True):
+    shift_df = fetch_shifts_from_db(user_name)
     shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
-    pay_df.columns = pay_df.columns.astype(str).str.strip().str.title()
 
-    user_shifts = shift_df[shift_df["Name"] == user_name].copy()
-    user_shifts["Show Date"] = pd.to_datetime(user_shifts["Show Date"], errors="coerce").dt.date
-    user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
+    shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
+    shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
 
     pay_periods = sorted(
         set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
@@ -256,17 +296,17 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
                 return period
         return "Unmatched"
 
-    user_shifts["Pay Period"] = user_shifts["Shift Date"].apply(get_shift_pay_period)
+    shift_df["Pay Period"] = shift_df["Shift Date"].apply(get_shift_pay_period)
 
     if selected_period != "All":
-        user_shifts = user_shifts[user_shifts["Pay Period"] == selected_period]
+        shift_df = shift_df[shift_df["Pay Period"] == selected_period]
 
-    if user_shifts.empty:
+    if shift_df.empty:
         st.info("No shift data found yet. Log some tasks!")
     else:
         earnings = []
         total_pay = 0
-        for _, row in user_shifts.iterrows():
+        for _, row in shift_df.iterrows():
             task = row["Task"].lower()
             breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
 
@@ -279,9 +319,10 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
             else:
                 earnings.append(0)
 
-        user_shifts["Earned"] = earnings
+        shift_df["Earned"] = earnings
 
         st.metric("💰 Total Earned", f"${total_pay:,.2f}")
-        st.metric("Total Tasks Logged", len(user_shifts))
+        st.metric("Total Tasks Logged", len(shift_df))
 
-        st.dataframe(user_shifts.sort_values(["Pay Period", "Shift Date"], ascending=[False, False]), use_container_width=True)
+        st.dataframe(shift_df.sort_values(["Pay Period", "Shift Date"], ascending=[False, False]), use_container_width=True)
+
