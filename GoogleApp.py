@@ -233,8 +233,6 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
-# ✅ USER DASHBOARD PAY PERIOD FILTER
-
 with st.expander("📊 My Earnings Dashboard", expanded=True):
     shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
     pay_df.columns = pay_df.columns.astype(str).str.strip().str.title()
@@ -243,14 +241,12 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
     user_shifts["Show Date"] = pd.to_datetime(user_shifts["Show Date"], errors="coerce").dt.date
     user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
 
-    # Pay Period Filter
     pay_periods = sorted(
         set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
         key=lambda x: parse_pay_period(x)[0], reverse=True
     )
     selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
 
-    # Map shifts to pay period
     def get_shift_pay_period(date):
         for period in pay_periods:
             start, end = parse_pay_period(period)
@@ -272,7 +268,7 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
             task = row["Task"].lower()
             breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
 
-            match = pay_df[(pay_df["Name"] == user_name) & (pay_df["Type"].str.lower() == task)]
+            match = user_pay_df[user_pay_df["Type"].str.lower() == task]
             if not match.empty:
                 rate = float(match.iloc[0]["Rate"])
                 earned = rate * breaks
