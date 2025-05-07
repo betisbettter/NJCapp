@@ -163,8 +163,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
-
-    # --- USER DASHBOARD ---
+# --- USER DASHBOARD ---
 st.subheader("📊 My Earnings Dashboard")
 
 @st.cache_data(ttl=120)
@@ -221,5 +220,6 @@ if st.button("📥 Load My Shifts"):
         st.metric("Total Tasks Logged", len(shift_df))
 
         st.dataframe(shift_df.sort_values(["Pay Period", "Shift Date"], ascending=[False, False]), use_container_width=True)
+
 
 
