@@ -102,57 +102,120 @@ pay_df = st.session_state["pay_df"]
 time_df = st.session_state["time_df"]
 user_pay_df = st.session_state["user_pay_data"]
 
-# --- Shift Form ---
+# ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
+
+import psycopg2
+from psycopg2.extras import execute_values
+import json
+
+# --- Database Connection for Neon ---
+def get_db_connection():
+    return psycopg2.connect(
+        host=st.secrets["neon"]["host"],
+        dbname=st.secrets["neon"]["dbname"],
+        user=st.secrets["neon"]["user"],
+        password=st.secrets["neon"]["password"],
+        sslmode="require"
+    )
+
+# --- Optimized Data Load ---
+if "pay_df" not in st.session_state:
+    st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
+
+if "time_df" not in st.session_state:
+    st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
+
+if "earnings_df" not in st.session_state:
+    st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
+
+# Cache login info and user-specific pay data
+if "user_name" in st.session_state:
+    user_name = st.session_state["user_name"]
+    if "user_pay_data" not in st.session_state:
+        user_pay_data = st.session_state["pay_df"]
+        st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
+else:
+    user_name = ""
+
+pay_df = st.session_state["pay_df"]
+time_df = st.session_state["time_df"]
+earnings_df = st.session_state["earnings_df"]
+user_pay_df = st.session_state.get("user_pay_data", pd.DataFrame())
+
 st.subheader("💰 Get Paid - Log Your Work Tasks")
+
 with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
-    general_notes = st.text_area("📝 General Shift Notes (optional)")
+    general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
+
     task_entries = []
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown("### 🔹 Sort")
-        sort_show = st.text_input("Who's Show? (Sort)")
-        sort_date = st.date_input("Show Date (Sort)", value=datetime.today())
-        sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1)
-        sort_large = st.checkbox("Large Break (Sort)")
-        sort_notes = st.text_area("Notes (Sort)")
+        sort_show = st.text_input("Who's Show? (Sort)", key="sort_show")
+        sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
+        sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
+        sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
+        sort_notes = st.text_area("Notes (Sort)",  key="sort_notes")
+
         if sort_show and sort_breaks > 0:
-            task_entries.append([user_name, "Sort", sort_breaks, sort_show, sort_date, shift_date, f"Large Break: {sort_large} | {sort_notes} | {general_notes}"])
+            task_entries.append([
+                user_name, "Sort", sort_breaks, sort_show,
+                sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                f"Large Break: {sort_large} | {sort_notes} | {general_notes}"
+            ])
 
     with col2:
         st.markdown("### 🔸 Pack")
-        pack_show = st.text_input("Who's Show? (Pack)")
-        pack_date = st.date_input("Show Date (Pack)", value=datetime.today())
-        pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1)
-        pack_large = st.checkbox("Large Break (Pack)")
-        pack_notes = st.text_area("Notes (Pack)")
+        pack_show = st.text_input("Who's Show? (Pack)", key="pack_show")
+        pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
+        pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
+        pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
+        pack_notes = st.text_area("Notes (Pack)",  key="pack_notes")
+
         if pack_show and pack_breaks > 0:
-            task_entries.append([user_name, "Pack", pack_breaks, pack_show, pack_date, shift_date, f"Large Break: {pack_large} | {pack_notes} | {general_notes}"])
+            task_entries.append([
+                user_name, "Pack", pack_breaks, pack_show,
+                pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                f"Large Break: {pack_large} | {pack_notes} | {general_notes}"
+            ])
 
     with col3:
         st.markdown("### 🟣 Sleeve")
-        sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1)
-        for i in range(sleeve_count):
-            show = st.text_input(f"Who's Show? (Sleeve {i+1})")
-            date = st.date_input(f"Show Date (Sleeve {i+1})", value=datetime.today())
-            if show:
-                task_entries.append([user_name, "Sleeve", 1, show, date, shift_date, f"Sleeve Entry | {general_notes}"])
+        sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1, key="sleeve_count")
 
-    if st.button("✅ Submit All Logged Tasks"):
+        for i in range(sleeve_count):
+            show = st.text_input(f"Who's Show? (Sleeve {i+1})", key=f"sleeve_show_{i}")
+            date = st.date_input(f"Show Date (Sleeve {i+1})", value=datetime.today(), key=f"sleeve_date_{i}")
+            if show:
+                task_entries.append([
+                    user_name, "Sleeve", 1, show,
+                    date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                    f"Sleeve Entry | {general_notes}"
+                ])
+
+    submit = st.button("✅ Submit All Logged Tasks")
+
+    if submit:
         if task_entries:
+            # Save to Google Sheets
             shift_sheet.append_rows(task_entries)
+            # Save to Neon DB
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
                     execute_values(
                         cur,
-                        "INSERT INTO shifts (name, task, breaks, show_name, show_date, shift_date, notes) VALUES %s",
+                        """
+                        INSERT INTO shifts (name, task, breaks, show_name, show_date, shift_date, notes)
+                        VALUES %s
+                        """,
                         task_entries
                     )
             st.success("✅ All tasks successfully logged!")
         else:
-            st.warning("⚠️ Please enter at least one task.")
+            st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
 
 # ✅ USER DASHBOARD PAY PERIOD FILTER (Read from Neon DB)
 
