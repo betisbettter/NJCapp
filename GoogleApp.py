@@ -7,9 +7,8 @@ import os
 import psycopg2
 from psycopg2.extras import execute_values
 
-
+# --- Clear old cache (optional during development) ---
 st.cache_data.clear()
-
 
 # --- Google Sheets Setup ---
 credentials_dict = st.secrets["gcp_service_account"]
@@ -17,14 +16,13 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_dict, scope)
 client = gspread.authorize(credentials)
 
-# Open all worksheets
 shift_sheet = client.open("WORK LOG").worksheet("Shifts")
 time_sheet = client.open("WORK LOG").worksheet("Time")
 pay_sheet = client.open("WORK LOG").worksheet("Pay")
 user_sheet = client.open("Users").sheet1
 earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
 
-# --- Database Connection for Neon ---
+# --- Neon DB Connection ---
 def get_db_connection():
     return psycopg2.connect(
         host=st.secrets["neon"]["host"],
@@ -34,8 +32,7 @@ def get_db_connection():
         sslmode="require"
     )
 
-
-# --- Caching Functions ---
+# --- Load Cached Data ---
 @st.cache_data(ttl=60)
 def load_shift_data():
     return pd.DataFrame(shift_sheet.get_all_records())
@@ -52,7 +49,7 @@ def load_pay_data():
 def load_user_data():
     return user_sheet.get_all_records()
 
-# --- Helper Functions ---
+# --- Helpers ---
 def parse_pay_period(pay_period_str):
     start_str, end_str = pay_period_str.split("-")
     start_date = datetime.strptime(start_str.strip(), "%m/%d/%Y").date()
@@ -62,81 +59,15 @@ def parse_pay_period(pay_period_str):
 def check_user_credentials(input_name, input_pass, user_data):
     for entry in user_data:
         if entry["Name"] == input_name:
-            stored_pass = entry["Passkey"]
-            return stored_pass == input_pass
+            return entry["Passkey"] == input_pass
     return False
 
-def refresh_earnings():
-    pay_df = load_pay_data()
-    time_df = load_time_data()
-    shift_df = load_shift_data()
-
-    earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
-
-    shift_df["Date of Work"] = pd.to_datetime(shift_df["Date of Work"]).dt.date  
-
-    merged_df = pd.merge(time_df, pay_df, on="Name", how="left")
-
-    results = []
-
-    for _, row in merged_df.iterrows():
-        name = row["Name"]
-        pay_period = row["Pay Period"]
-        rate_type = row["Type"].lower()
-        rate = row["Rate"]
-
-        start_date, end_date = parse_pay_period(pay_period)
-
-        if rate_type == "hourly":
-            total_time = row["Total Time"]
-            total_earned = total_time * rate
-
-        elif rate_type == "break":
-            shifts_for_period = shift_df[
-                (shift_df["Name"] == name) &
-                (shift_df["Date of Work"] >= start_date) &
-                (shift_df["Date of Work"] <= end_date)
-            ]
-            total_breaks = shifts_for_period["num Breaks"].sum()
-            total_earned = total_breaks * rate
-
-        else:
-            total_earned = 0
-
-        results.append([name, pay_period, round(total_earned, 2)])
-
-# ✅ Instead of clearing and appending one row at a time, we batch it
-    values = [["Name", "Pay Period", "Total Earned"]] + results
-    earnings_sheet.update('A1', values)
-
-# Success Summary
-    total_users = len(results)
-    total_payroll = sum([entry[2] for entry in results])
-
-    st.success(f"✅ Successfully updated earnings for {total_users} people!")
-    st.info(f"💰 Total Payroll This Period: **${total_payroll:,.2f}**")
-
-
-# --- Success Summary ---
-    total_users = len(results)
-    total_payroll = sum([entry[2] for entry in results])
-
-    st.success(f"✅ Successfully updated earnings for {total_users} people!")
-    st.info(f"💰 Total Payroll This Period: **${total_payroll:,.2f}**")
-
-
 # --- Page Setup ---
-
 if os.path.exists("NJCimage2.png"):
     st.image("NJCimage2.png", use_container_width=True)
-else:
-    st.warning("⚠️ Image not found. Please upload `NJCimage2.png`.")
-
-# --- User Authentication ---
 
 user_records = load_user_data()
-user_names = [row["Name"] for row in user_records]
-user_names.sort()
+user_names = sorted([row["Name"] for row in user_records])
 
 with st.expander("🔐 User Authentication", expanded=True):
     st.subheader("Log In")
@@ -156,121 +87,74 @@ with st.expander("🔐 User Authentication", expanded=True):
 
 user_name = st.session_state["user_name"]
 
-# --- Admin Controls ---
-admin_users = ["Anthony", "Greg"]
-is_admin = user_name in admin_users
-
-if is_admin:
-    with st.expander("🔧 Admin Controls", expanded=True):
-        st.subheader("Admin Panel")
-        if st.button("🔄 Refresh Earnings Calculations"):
-            refresh_earnings()
-            st.success("✅ Earnings sheet has been updated!")
-
-
-# ✅ USER SHIFT ENTRY FORM: Organized by Task Type (Sort / Pack / Sleeve)
-
-# --- Optimized Data Load ---
+# --- Load Cached Data (per session) ---
 if "pay_df" not in st.session_state:
     st.session_state["pay_df"] = pd.DataFrame(pay_sheet.get_all_records())
-
 if "time_df" not in st.session_state:
     st.session_state["time_df"] = pd.DataFrame(time_sheet.get_all_records())
-
 if "earnings_df" not in st.session_state:
     st.session_state["earnings_df"] = pd.DataFrame(earnings_sheet.get_all_records())
-
-# Cache login info and user-specific pay data
-if "user_name" in st.session_state:
-    user_name = st.session_state["user_name"]
-    if "user_pay_data" not in st.session_state:
-        user_pay_data = st.session_state["pay_df"]
-        st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
-else:
-    user_name = ""
+if "user_pay_data" not in st.session_state:
+    user_pay_data = st.session_state["pay_df"]
+    st.session_state["user_pay_data"] = user_pay_data[user_pay_data["Name"] == user_name].copy()
 
 pay_df = st.session_state["pay_df"]
 time_df = st.session_state["time_df"]
-earnings_df = st.session_state["earnings_df"]
-user_pay_df = st.session_state.get("user_pay_data", pd.DataFrame())
+user_pay_df = st.session_state["user_pay_data"]
 
+# --- Shift Form ---
 st.subheader("💰 Get Paid - Log Your Work Tasks")
-
 with st.expander("🧱 Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
-    general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
-
+    general_notes = st.text_area("📝 General Shift Notes (optional)")
     task_entries = []
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.markdown("### 🔹 Sort")
-        sort_show = st.text_input("Who's Show? (Sort)", key="sort_show")
-        sort_date = st.date_input("Show Date (Sort)", value=datetime.today(), key="sort_date")
-        sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1, key="sort_breaks")
-        sort_large = st.checkbox("Large Break (Sort)", key="sort_large")
-        sort_notes = st.text_area("Notes (Sort)",  key="sort_notes")
-
+        sort_show = st.text_input("Who's Show? (Sort)")
+        sort_date = st.date_input("Show Date (Sort)", value=datetime.today())
+        sort_breaks = st.number_input("Number of Breaks (Sort)", min_value=0, step=1)
+        sort_large = st.checkbox("Large Break (Sort)")
+        sort_notes = st.text_area("Notes (Sort)")
         if sort_show and sort_breaks > 0:
-            task_entries.append([
-                user_name, "Sort", sort_breaks, sort_show,
-                sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {sort_large} | {sort_notes} | {general_notes}"
-            ])
+            task_entries.append([user_name, "Sort", sort_breaks, sort_show, sort_date, shift_date, f"Large Break: {sort_large} | {sort_notes} | {general_notes}"])
 
     with col2:
         st.markdown("### 🔸 Pack")
-        pack_show = st.text_input("Who's Show? (Pack)", key="pack_show")
-        pack_date = st.date_input("Show Date (Pack)", value=datetime.today(), key="pack_date")
-        pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1, key="pack_breaks")
-        pack_large = st.checkbox("Large Break (Pack)", key="pack_large")
-        pack_notes = st.text_area("Notes (Pack)",  key="pack_notes")
-
+        pack_show = st.text_input("Who's Show? (Pack)")
+        pack_date = st.date_input("Show Date (Pack)", value=datetime.today())
+        pack_breaks = st.number_input("Number of Breaks (Pack)", min_value=0, step=1)
+        pack_large = st.checkbox("Large Break (Pack)")
+        pack_notes = st.text_area("Notes (Pack)")
         if pack_show and pack_breaks > 0:
-            task_entries.append([
-                user_name, "Pack", pack_breaks, pack_show,
-                pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {pack_large} | {pack_notes} | {general_notes}"
-            ])
+            task_entries.append([user_name, "Pack", pack_breaks, pack_show, pack_date, shift_date, f"Large Break: {pack_large} | {pack_notes} | {general_notes}"])
 
     with col3:
         st.markdown("### 🟣 Sleeve")
-        sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1, key="sleeve_count")
-
+        sleeve_count = st.number_input("Number of Shows Sleeved", min_value=0, step=1)
         for i in range(sleeve_count):
-            show = st.text_input(f"Who's Show? (Sleeve {i+1})", key=f"sleeve_show_{i}")
-            date = st.date_input(f"Show Date (Sleeve {i+1})", value=datetime.today(), key=f"sleeve_date_{i}")
+            show = st.text_input(f"Who's Show? (Sleeve {i+1})")
+            date = st.date_input(f"Show Date (Sleeve {i+1})", value=datetime.today())
             if show:
-                task_entries.append([
-                    user_name, "Sleeve", 1, show,
-                    date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                    f"Sleeve Entry | {general_notes}"
-                ])
+                task_entries.append([user_name, "Sleeve", 1, show, date, shift_date, f"Sleeve Entry | {general_notes}"])
 
-    submit = st.button("✅ Submit All Logged Tasks")
-
-    if submit:
+    if st.button("✅ Submit All Logged Tasks"):
         if task_entries:
-            # Save to Google Sheets
             shift_sheet.append_rows(task_entries)
-            # Save to Neon DB
             with get_db_connection() as conn:
                 with conn.cursor() as cur:
                     execute_values(
                         cur,
-                        """
-                        INSERT INTO shifts (name, task, breaks, show_name, show_date, shift_date, notes)
-                        VALUES %s
-                        """,
+                        "INSERT INTO shifts (name, task, breaks, show_name, show_date, shift_date, notes) VALUES %s",
                         task_entries
                     )
             st.success("✅ All tasks successfully logged!")
         else:
-            st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
+            st.warning("⚠️ Please enter at least one task.")
 
-# ✅ USER DASHBOARD PAY PERIOD FILTER (Read from Neon DB)
-
+# --- Dashboard ---
 @st.cache_data(ttl=120)
 def fetch_shifts_from_db(user_name):
     with get_db_connection() as conn:
@@ -279,14 +163,10 @@ def fetch_shifts_from_db(user_name):
 with st.expander("📊 My Earnings Dashboard", expanded=True):
     shift_df = fetch_shifts_from_db(user_name)
     shift_df.columns = shift_df.columns.astype(str).str.strip().str.title()
-
     shift_df["Show Date"] = pd.to_datetime(shift_df["Show Date"], errors="coerce").dt.date
     shift_df["Shift Date"] = pd.to_datetime(shift_df["Shift Date"], errors="coerce").dt.date
 
-    pay_periods = sorted(
-        set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name),
-        key=lambda x: parse_pay_period(x)[0], reverse=True
-    )
+    pay_periods = sorted(set(row["Pay Period"] for _, row in time_df.iterrows() if row["Name"] == user_name), key=lambda x: parse_pay_period(x)[0], reverse=True)
     selected_period = st.selectbox("🗕️ Filter by Pay Period:", options=["All"] + pay_periods)
 
     def get_shift_pay_period(date):
@@ -309,7 +189,6 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
         for _, row in shift_df.iterrows():
             task = row["Task"].lower()
             breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
-
             match = user_pay_df[user_pay_df["Type"].str.lower() == task]
             if not match.empty:
                 rate = float(match.iloc[0]["Rate"])
@@ -324,5 +203,8 @@ with st.expander("📊 My Earnings Dashboard", expanded=True):
         st.metric("💰 Total Earned", f"${total_pay:,.2f}")
         st.metric("Total Tasks Logged", len(shift_df))
 
-        st.dataframe(shift_df.sort_values(["Pay Period", "Shift Date"], ascending=[False, False]), use_container_width=True)
-
+        st.dataframe(
+            shift_df[["Pay Period", "Shift Date", "Task", "Show Name", "Show Date", "Breaks", "Earned", "Notes"]]
+            .sort_values(["Pay Period", "Shift Date"], ascending=[False, False]),
+            use_container_width=True
+        )
