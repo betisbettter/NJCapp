@@ -214,7 +214,7 @@ if st.button("📥 Load My Shifts"):
         for i, row in shift_df.iterrows():
             task = row["Task"].lower()
             breaks = row["Breaks"] if not pd.isnull(row["Breaks"]) else 0
-            match = user_pay_df[user_pay_df["Type"].str.lower() == task]
+            match = user_pay_df[user_pay_df["Task"].str.lower() == task]
             if not match.empty:
                 rate = float(match.iloc[0]["Rate"])
                 shift_df.at[i, "Earned"] = rate * breaks
