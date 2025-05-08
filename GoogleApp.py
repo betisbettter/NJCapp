@@ -60,6 +60,8 @@ def check_user_credentials(input_name, input_pass):
 user_names = st.session_state["user_df"]["Name"].tolist()
 user_names.sort()
 
+st.subheader("Log In")
+
 with st.expander("🔐 User Authentication", expanded=True):
     name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
     pass_input = st.text_input("Passkey", type="password")
