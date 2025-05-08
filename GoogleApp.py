@@ -60,7 +60,7 @@ with st.expander("🔐 User Authentication", expanded=True):
         if check_user_credentials(name_input, pass_input):
             st.session_state["logged_in"] = True
             st.session_state["user_name"] = name_input
-            st.session_state["is_admin"] = name_input in ["Anthony", "Greg"]
+            st.session_state["is_admin"] = name_input in ["Anthony Gartman", "Greg Oneill"]
             st.success(f"Welcome {name_input}!")
         else:
             st.error("Invalid credentials")
