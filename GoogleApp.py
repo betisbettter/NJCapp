@@ -194,14 +194,17 @@ if st.session_state.get("is_admin"):
                 user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
                 period_shifts = user_shifts[(user_shifts["Shift Date"] >= start_date) & (user_shifts["Shift Date"] <= end_date)]
 
+                period_shifts["Rate Bonus"] = pd.to_numeric(period_shifts.get("Rate Bonus", 0), errors="coerce").fillna(0)
+
                 for _, row in period_shifts.iterrows():
                     task = row["Task"].lower()
                     breaks = int(row["Breaks"])
                     match = user_pay[user_pay["Task"].str.lower() == task]
                     if not match.empty:
                         rate = float(match["Rate"].values[0])
-                        bonus = 5 if "Large Break: True" in str(row["Notes"]).lower() else 0
-                        total += breaks * (rate + bonus)
+                        bonus = float(row["Rate Bonus"])
+                        total += breaks * rate + bonus
+
 
 
             earnings.append([name, selected_period, round(total, 2)])
