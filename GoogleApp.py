@@ -82,7 +82,7 @@ user_wage_type = user_row.iloc[0]["Wage"].lower() if not user_row.empty else "ta
 
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
-with st.expander("🧱 Log Your Shift Tasks", expanded=True):
+with st.expander("Log Your Shift Tasks", expanded=True):
     shift_date = st.date_input("🗓️ Date of Shift", value=datetime.today(), key="main_shift_date")
     general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
 
@@ -156,7 +156,9 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
 
 # --- ADMIN: Calculate Team Earnings ---
 if st.session_state.get("is_admin"):
-    with st.expander("🧮 Calculate Earnings for the Team for This Pay Period", expanded=True):
+    st.subheader("ADMIN - Calculate Earnings")
+
+    with st.expander("Calculate Earnings for the Team for This Pay Period", expanded=True):
         time_df = pd.DataFrame(client.open("WORK LOG").worksheet("Time").get_all_records())
         pay_df = pd.DataFrame(client.open("WORK LOG").worksheet("Pay").get_all_records())
         shift_df = pd.DataFrame(client.open("WORK LOG").worksheet("Shifts").get_all_records())
