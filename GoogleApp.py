@@ -137,7 +137,7 @@ with st.expander("🧱 Log Your Shift Tasks", expanded=True):
                     execute_values(
                         cur,
                         """
-                        INSERT INTO shifts (Name, Task, Breaks, Who's Show, Show Date, Shift Date, Notes)
+                        INSERT INTO shifts ("Name", "Task", "Breaks", "Who's Show", "Show Date", "Shift Date", "Notes")
                         VALUES %s
                         """,
                         task_entries
