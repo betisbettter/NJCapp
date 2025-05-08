@@ -87,6 +87,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
     general_notes = st.text_area("📝 General Shift Notes (optional)", height=80, key="general_notes")
 
     task_entries = []
+    date_logged = datetime.today().strftime("%Y-%m-%d")
 
     col1, col2, col3 = st.columns(3)
 
@@ -102,7 +103,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
             task_entries.append([
                 user_name, "Sort", sort_breaks, sort_show,
                 sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {sort_large} | {sort_notes} | {general_notes}"
+                f"Large Break: {sort_large} | {sort_notes} | {general_notes}", date_logged
             ])
 
     with col2:
@@ -117,7 +118,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
             task_entries.append([
                 user_name, "Pack", pack_breaks, pack_show,
                 pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {pack_large} | {pack_notes} | {general_notes}"
+                f"Large Break: {pack_large} | {pack_notes} | {general_notes}", date_logged
             ])
 
     with col3:
@@ -131,7 +132,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
                 task_entries.append([
                     user_name, "Sleeve", 1, show,
                     date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                    f"Sleeve Entry | {general_notes}"
+                    f"Sleeve Entry | {general_notes}", date_logged
                 ])
 
     submit = st.button("✅ Submit All Logged Tasks")
@@ -144,7 +145,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
                     execute_values(
                         cur,
                         """
-                        INSERT INTO shifts ("Name", "Task", "Breaks", "Who's Show", "Show Date", "Shift Date", "Notes")
+                        INSERT INTO shifts ("Name", "Task", "Breaks", "Who's Show", "Show Date", "Shift Date", "Notes", "Date Logged")
                         VALUES %s
                         """,
                         task_entries
@@ -152,7 +153,6 @@ with st.expander("Log Your Shift Tasks", expanded=True):
             st.success("✅ All tasks successfully logged!")
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
-
 
 # --- ADMIN: Calculate Team Earnings ---
 if st.session_state.get("is_admin"):
