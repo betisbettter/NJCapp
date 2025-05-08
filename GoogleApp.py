@@ -15,7 +15,7 @@ st.cache_data.clear()
 
 #----- IMAGE ------
 if os.path.exists("NJCimage2.png"):
-    st.image("NJCimage2.png", use_container_width=True)  # Adjust width as needed
+    st.image("NJCimage2.png", use_container_width=True)
 else:
     st.warning("⚠️ Image not found. Please upload `NJCimage.png`.")
 st.title("No Job Cards Work Log")
@@ -60,8 +60,6 @@ def check_user_credentials(input_name, input_pass):
 user_names = st.session_state["user_df"]["Name"].tolist()
 user_names.sort()
 
-st.subheader("Log In")
-
 with st.expander("🔐 User Authentication", expanded=True):
     name_input = st.selectbox("Select Your Name", options=["Name"] + user_names)
     pass_input = st.text_input("Passkey", type="password")
@@ -102,11 +100,14 @@ with st.expander("Log Your Shift Tasks", expanded=True):
         sort_notes = st.text_area("Notes (Sort)", key="sort_notes")
 
         if sort_show and sort_breaks > 0:
-            task_entries.append([
-                user_name, "Sort", sort_breaks, sort_show,
-                sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {sort_large} | {sort_notes} | {general_notes}", date_logged
-            ])
+            for _ in range(sort_breaks):
+                rate_bonus = 5 if sort_large else 0
+                task_entries.append([
+                    user_name, "Sort", 1, sort_show,
+                    sort_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                    f"Large Break: {sort_large} | {sort_notes} | {general_notes}",
+                    date_logged, rate_bonus
+                ])
 
     with col2:
         st.markdown("### Pack")
@@ -117,11 +118,13 @@ with st.expander("Log Your Shift Tasks", expanded=True):
         pack_notes = st.text_area("Notes (Pack)", key="pack_notes")
 
         if pack_show and pack_breaks > 0:
-            task_entries.append([
-                user_name, "Pack", pack_breaks, pack_show,
-                pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                f"Large Break: {pack_large} | {pack_notes} | {general_notes}", date_logged
-            ])
+            for _ in range(pack_breaks):
+                task_entries.append([
+                    user_name, "Pack", 1, pack_show,
+                    pack_date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
+                    f"Large Break: {pack_large} | {pack_notes} | {general_notes}",
+                    date_logged, 0
+                ])
 
     with col3:
         st.markdown("### Sleeve")
@@ -134,7 +137,8 @@ with st.expander("Log Your Shift Tasks", expanded=True):
                 task_entries.append([
                     user_name, "Sleeve", 1, show,
                     date.strftime("%Y-%m-%d"), shift_date.strftime("%Y-%m-%d"),
-                    f"Sleeve Entry | {general_notes}", date_logged
+                    f"Sleeve Entry | {general_notes}",
+                    date_logged, 0
                 ])
 
     submit = st.button("✅ Submit All Logged Tasks")
@@ -147,7 +151,7 @@ with st.expander("Log Your Shift Tasks", expanded=True):
                     execute_values(
                         cur,
                         """
-                        INSERT INTO shifts ("Name", "Task", "Breaks", "Who's Show", "Show Date", "Shift Date", "Notes", "Date Logged")
+                        INSERT INTO shifts ("Name", "Task", "Breaks", "Who's Show", "Show Date", "Shift Date", "Notes", "Date Logged", "Rate Bonus")
                         VALUES %s
                         """,
                         task_entries
@@ -155,53 +159,3 @@ with st.expander("Log Your Shift Tasks", expanded=True):
             st.success("✅ All tasks successfully logged!")
         else:
             st.warning("⚠️ Please enter at least one task in Sort, Pack, or Sleeve.")
-
-# --- ADMIN: Calculate Team Earnings ---
-if st.session_state.get("is_admin"):
-    st.subheader("ADMIN - Calculate Earnings")
-
-    with st.expander("Calculate Earnings for the Team for This Pay Period", expanded=True):
-        time_df = pd.DataFrame(client.open("WORK LOG").worksheet("Time").get_all_records())
-        pay_df = pd.DataFrame(client.open("WORK LOG").worksheet("Pay").get_all_records())
-        shift_df = pd.DataFrame(client.open("WORK LOG").worksheet("Shifts").get_all_records())
-
-        recent_periods = sorted(time_df["Pay Period"].unique(), key=lambda x: datetime.strptime(x.split("-")[0].strip(), "%m/%d/%Y"), reverse=True)[:2]
-        selected_period = st.selectbox("Choose Pay Period", recent_periods)
-
-        start_str, end_str = selected_period.split("-")
-        start_date = datetime.strptime(start_str.strip(), "%m/%d/%Y").date()
-        end_date = datetime.strptime(end_str.strip(), "%m/%d/%Y").date()
-
-        earnings = []
-
-        for name in time_df["Name"].unique():
-            total = 0
-            user_time = time_df[(time_df["Name"] == name) & (time_df["Pay Period"] == selected_period)]
-            user_pay = pay_df[pay_df["Name"] == name]
-            wage_type = st.session_state["user_df"].set_index("Name").at[name, "Wage"].lower()
-
-            if wage_type == "time" and not user_time.empty:
-                rate = float(user_pay[user_pay["Task"].str.lower() == "time"]["Rate"].values[0])
-                total = float(user_time["Total Hrs"].values[0]) * rate
-
-            elif wage_type == "task":
-                user_shifts = shift_df[(shift_df["Name"] == name)]
-                user_shifts["Shift Date"] = pd.to_datetime(user_shifts["Shift Date"], errors="coerce").dt.date
-                period_shifts = user_shifts[(user_shifts["Shift Date"] >= start_date) & (user_shifts["Shift Date"] <= end_date)]
-
-                for _, row in period_shifts.iterrows():
-                    task = row["Task"].lower()
-                    breaks = int(row["Breaks"])
-                    match = user_pay[user_pay["Task"].str.lower() == task]
-                    if not match.empty:
-                        rate = float(match["Rate"].values[0])
-                        bonus = 5 if "Large Break: True" in str(row["Notes"]).lower() else 0
-                        total += breaks * (rate + bonus)
-
-
-            earnings.append([name, selected_period, round(total, 2)])
-
-        earnings_sheet = client.open("WORK LOG").worksheet("Earnings")
-        earnings_sheet.update("A1", [["Name", "Pay Period", "Total Earnings"]] + earnings)
-        st.success("✅ Team earnings calculated and written to Google Sheets!")
-
