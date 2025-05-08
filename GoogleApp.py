@@ -195,7 +195,9 @@ if st.session_state.get("is_admin"):
                     match = user_pay[user_pay["Task"].str.lower() == task]
                     if not match.empty:
                         rate = float(match["Rate"].values[0])
-                        total += breaks * rate
+                        bonus = 5 if "Large Break: True" in str(row["Notes"]).lower() else 0
+                        total += breaks * (rate + bonus)
+
 
             earnings.append([name, selected_period, round(total, 2)])
 
