@@ -80,6 +80,8 @@ user_name = st.session_state["user_name"]
 user_row = st.session_state["user_df"][st.session_state["user_df"]["Name"] == user_name]
 user_wage_type = user_row.iloc[0]["Wage"].lower() if not user_row.empty else "task"
 
+
+#~~~~~~~~~SHIFT FORM-----------
 st.subheader("💰 Get Paid - Log Your Work Tasks")
 
 with st.expander("Log Your Shift Tasks", expanded=True):
