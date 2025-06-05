@@ -202,7 +202,16 @@ if st.session_state.get("is_admin"):
 
 
             if wage_type == "time" and not user_time.empty:
-                rate = (user_pay[user_pay["Task"].str.lower() == "time"]["Rate"].values[0])
+                time_row = user_pay[user_pay["Task"].str.lower() == "time"]
+
+                if not time_row.empty:
+                    rate = float(time_row["Rate"].values[0])
+                    total = float(user_time["Total Hrs"].values[0]) * rate
+                else:
+                    st.warning(f"⚠️ No time-based rate found for {name}. Skipping.")
+                    continue
+
+
                 total = float(user_time["Total Hrs"].values[0]) * rate
 
             elif wage_type == "task":
