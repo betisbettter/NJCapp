@@ -188,7 +188,7 @@ if st.session_state.get("is_admin"):
             wage_type = st.session_state["user_df"].set_index("Name").at[name, "Wage"].lower()
 
             if wage_type == "time" and not user_time.empty:
-                rate = float(user_pay[user_pay["Task"].str.lower() == "time"]["Rate"].values[0])
+                rate = (user_pay[user_pay["Task"].str.lower() == "time"]["Rate"].values[0])
                 total = float(user_time["Total Hrs"].values[0]) * rate
 
             elif wage_type == "task":
