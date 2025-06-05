@@ -185,7 +185,21 @@ if st.session_state.get("is_admin"):
             total = 0
             user_time = time_df[(time_df["Name"] == name) & (time_df["Pay Period"] == selected_period)]
             user_pay = pay_df[pay_df["Name"] == name]
-            wage_type = st.session_state["user_df"].set_index("Name").at[name, "Wage"].lower()
+            
+            try:
+                user_df = st.session_state.get("user_df")
+                if user_df is None:
+                    st.error("❌ 'user_df' not found in session_state.")
+                else:
+                    user_df = user_df.set_index("Name")
+                    if name not in user_df.index:
+                        st.warning(f"⚠️ Name '{name}' not found in user_df.")
+                        continue
+                    wage_type = user_df.at[name, "Wage"].lower()
+            except Exception as e:
+                st.error(f"❌ Error getting wage type for {name}: {e}")
+                continue
+
 
             if wage_type == "time" and not user_time.empty:
                 rate = (user_pay[user_pay["Task"].str.lower() == "time"]["Rate"].values[0])
